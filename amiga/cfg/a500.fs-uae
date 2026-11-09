@@ -1,0 +1,9 @@
+[fs-uae]
+# A500 OCS. No kickstart_file set -> FS-UAE boots its built-in AROS ROM.
+# For a real Kickstart: kickstart_file = /path/to/kick13.rom (not in this repo)
+amiga_model = A500
+fullscreen = 0
+window_width = 720
+window_height = 568
+audio_driver = null
+# hard_drive_0 and screenshots_output_dir are passed by tools/emu.sh

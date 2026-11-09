@@ -1,0 +1,24 @@
+[submodule "third_party/amiga/amiga-gcc"]
+	path = third_party/amiga/amiga-gcc
+	url = https://codeberg.org/bebbo/amiga-gcc
+[submodule "third_party/amiga/vscode-amiga-debug"]
+	path = third_party/amiga/vscode-amiga-debug
+	url = https://github.com/BartmanAbyss/vscode-amiga-debug
+[submodule "third_party/amiga/fs-uae"]
+	path = third_party/amiga/fs-uae
+	url = https://github.com/FrodeSolheim/fs-uae
+[submodule "third_party/ngpc/beetle-ngp-libretro"]
+	path = third_party/ngpc/beetle-ngp-libretro
+	url = https://github.com/libretro/beetle-ngp-libretro
+[submodule "third_party/ngpc/RACE"]
+	path = third_party/ngpc/RACE
+	url = https://github.com/libretro/RACE
+[submodule "third_party/ngpc/NgpCraft_dev_ref"]
+	path = third_party/ngpc/NgpCraft_dev_ref
+	url = https://github.com/tixul/NgpCraft_dev_ref
+[submodule "third_party/ngpc/nfroggy-ngpcdev"]
+	path = third_party/ngpc/nfroggy-ngpcdev
+	url = https://github.com/nfroggy/ngpcdev
+[submodule "third_party/ngpc/sodthor-ngpcdev"]
+	path = third_party/ngpc/sodthor-ngpcdev
+	url = https://github.com/sodthor/ngpcdev
