@@ -1,0 +1,26 @@
+{
+  "result": "PASS",
+  "scope": "source/config integrity only",
+  "baseline": "01c2da88c61f8ec3dcbd2a7c807b72b8e4946d74",
+  "head": "01c2da88c61f8ec3dcbd2a7c807b72b8e4946d74",
+  "submodule_pins": {
+    "third_party/amiga/amiga-gcc": "b02b604a5922d6392d2fd80ec854e5248bd2ced6",
+    "third_party/amiga/fs-uae": "79ac88e3727ee4d35d964aa07ad78894b844da27",
+    "third_party/amiga/vscode-amiga-debug": "055097bba74dd1b2f764dcb90781d2017bd1d499",
+    "third_party/ngpc/NgpCraft_dev_ref": "58879c39cd626d6ccf685e489796b6da7ca9da57",
+    "third_party/ngpc/RACE": "c7810dd7f172827bfa2004813bc000b13786636b",
+    "third_party/ngpc/beetle-ngp-libretro": "a50d5ac288a81f2104ddf43195a4efdd15c72227",
+    "third_party/ngpc/nfroggy-ngpcdev": "7248660ee8bd21887016477c938f6ee22712f9ee",
+    "third_party/ngpc/sodthor-ngpcdev": "7776c137a2c45ace648456e0d93e70a620a3bce2"
+  },
+  "stock_config": {
+    "amiga_model": "A1200",
+    "chip_memory": "2048",
+    "slow_memory": "0",
+    "fast_memory": "0",
+    "zorro_iii_memory": "0",
+    "ntsc_mode": "0"
+  },
+  "game_build_verified": false,
+  "stock_speed_verified": false
+}

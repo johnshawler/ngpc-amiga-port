@@ -1,0 +1,13 @@
+[fs-uae]
+# Recovery target profile; must still be verified from emulator startup logs.
+amiga_model = A1200
+chip_memory = 2048
+slow_memory = 0
+fast_memory = 0
+zorro_iii_memory = 0
+ntsc_mode = 0
+fullscreen = 0
+window_width = 720
+window_height = 568
+# Kickstart and private boot media must be supplied locally.
+# The historical a1200.fs-uae remains unchanged and uses 8 MiB Fast.

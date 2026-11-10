@@ -3,3 +3,10 @@ logs/
 /rom/
 *.rom
 amiga/hd/hello_aga
+
+# Recovery outputs and commercial/private inputs are never source checkpoints.
+/private-inputs/
+/build/
+/reference/build/
+__pycache__/
+*.pyc
