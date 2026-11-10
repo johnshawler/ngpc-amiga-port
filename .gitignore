@@ -2,3 +2,4 @@ logs/
 *.log
 /rom/
 *.rom
+amiga/hd/hello_aga

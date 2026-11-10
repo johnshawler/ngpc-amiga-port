@@ -8,4 +8,7 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
   xvfb xdotool imagemagick ffmpeg mednafen fs-uae mame mame-tools \
   make wget git gcc g++ lhasa libgmp-dev libmpfr-dev libmpc-dev flex bison \
   gettext texinfo libncurses-dev autoconf rsync libreadline-dev
-echo "Optional, ~30 min: (cd third_party/amiga/amiga-gcc && make all -j\$(nproc) PREFIX=/opt/amiga)"
+echo "Amiga toolchain, ~30 min:"
+echo "  sudo mkdir -p /opt/amiga && sudo chown \$USER /opt/amiga"
+echo "  (cd third_party/amiga/amiga-gcc && make all -k -j\$(nproc) PREFIX=/opt/amiga)"
+echo "  -k: libSDL12 and libnix4.library fail to build and are not needed."

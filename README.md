@@ -14,10 +14,12 @@ Workspace for porting a Neo Geo Pocket Color (NGPC) game to the Commodore Amiga.
 | `third_party/amiga/amiga-gcc` | bebbo's m68k-amigaos GCC cross toolchain (with vasm, vlink, NDK) |
 | `third_party/amiga/vscode-amiga-debug` | BartmanAbyss VS Code Amiga dev/debug/profile extension |
 | `third_party/amiga/fs-uae` | FS-UAE Amiga emulator source |
-| `amiga/cfg/` | FS-UAE configs (A500 + AROS by default) |
+| `amiga/cfg/` | FS-UAE configs (`a1200.fs-uae` is the default; Kickstart from `rom/kick*.rom`, else AROS) |
 | `amiga/hd/` | Directory mounted as the Amiga's boot drive (DH0:) |
 | `tools/emu.sh` | Headless emulator driver (Xvfb + xdotool + ImageMagick) |
 | `tools/setup-ubuntu.sh` | Installs emulators and build deps |
+| `src/hello_aga/` | A1200 AGA smoke test (toolchain + emulator check) |
+| `docs/neo-turf-masters.md` | Notes on the game being ported |
 
 All sources are git submodules pinned to the commit that was evaluated; each keeps its own licence.
 
@@ -27,6 +29,21 @@ All sources are git submodules pinned to the commit that was evaluated; each kee
 git clone --recurse-submodules --shallow-submodules <this repo>
 tools/setup-ubuntu.sh
 ```
+
+## Amiga toolchain
+
+bebbo's amiga-gcc (GCC 6.5, binutils, gdb, libnix, NDK 3.2, vasm) installs to `/opt/amiga`.
+Build it with `make all -k` (see `tools/setup-ubuntu.sh`): `libSDL12` and `libnix4.library` fail
+to build with the pinned revision and are not needed.
+
+```bash
+make -C src/hello_aga        # builds amiga/hd/hello_aga
+tools/emu.sh amiga           # A1200 boots DH0:, S/Startup-Sequence runs hello_aga
+```
+
+`hello_aga` opens a 320×256×8 AGA screen and shows a 12-bit colour ramp for 5 s.
+Note: booting from a bare DH0: (no Workbench, no SetPatch) leaves Kickstart 3.x's
+graphics.library in ECS mode; programs must call `SetChipRev(SETCHIPREV_BEST)` to get AGA.
 
 ## Running headless
 
