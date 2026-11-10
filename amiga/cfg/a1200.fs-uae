@@ -1,0 +1,10 @@
+[fs-uae]
+# A1200 (68EC020, AGA, 2 MB chip). No kickstart_file -> built-in AROS ROM.
+# For a real Kickstart 3.x: kickstart_file = /path/to/kick31.rom (not in this repo)
+amiga_model = A1200
+fast_memory = 8192
+fullscreen = 0
+window_width = 720
+window_height = 568
+audio_driver = null
+# hard_drive_0 and screenshots_output_dir are passed by tools/emu.sh
