@@ -1,0 +1,82 @@
+{
+  "audio_restore_source_note": "Pinned mednafen/ngp/sound.cpp MDFNNGPCSOUND_StateAction clears the resampler buffer on load; intermittent PCM mismatch observed, not silently exempted or conclusively attributed.",
+  "checkpoint": "original-ngpc-reference-reimplementation",
+  "game": "Neo Turf Masters",
+  "independent_runs": {
+    "all_frame_video_audio_hashes_match": true,
+    "count": 2,
+    "distinct_video_hashes": 54,
+    "frames_each": 600,
+    "identical_jsonl": true,
+    "jsonl_sha256": "f7e65392dd912c23fd4f831ef2449789806b0a6c442ae74f742411910bece7f2"
+  },
+  "limits": [
+    "Only this 600-frame input sequence and 120 replay frames were tested; no assertion of gameplay coverage.",
+    "Frozen UTC RTC is not a real-time clock test.",
+    "No native-port equivalence, Amiga execution or target performance tested.",
+    "Serialization is core-private; matching hashes do not prove all hardware state is serialized.",
+    "No ROM, video, audio or serialized-state bytes included in this summary."
+  ],
+  "restore_replay": {
+    "audio_match": false,
+    "audio_mismatch_frames": [
+      612,
+      613,
+      617,
+      618,
+      622,
+      623,
+      650,
+      651,
+      655,
+      656,
+      660,
+      661,
+      665,
+      666,
+      693,
+      694
+    ],
+    "final_state_match": true,
+    "first_final_state_sha256": "216314d5aaf2446fa546db4e441f66fa9309eacd51155ba5614b8d20796152c0",
+    "frames": 120,
+    "restored_final_state_sha256": "216314d5aaf2446fa546db4e441f66fa9309eacd51155ba5614b8d20796152c0",
+    "strict_process_exit_code": 1,
+    "type": "replay",
+    "video_audio_match": false,
+    "video_match": true,
+    "video_mismatch_frames": []
+  },
+  "run_configuration": {
+    "api": 1,
+    "byteorder": "little",
+    "core": "Beetle NeoPop",
+    "core_sha256": "ca607279523e2d52cdcf88c1bb0e600675ad4b4ad8d5cc8abab4ff41c995b619",
+    "fps": 60.25,
+    "game_checks": "running",
+    "input_sha256": "1365791b5b2f9aaf5b36d9bca1da3015dc381e4939db1a4cead8d76fbbb3fca1",
+    "pixel_format": "RGB565",
+    "rom_bytes": 2097152,
+    "rom_sha256": "92c7b5a3d6d28f8918c030afb95f9e4c13038326b8391d7fb05feac26917051a",
+    "rtc_epoch": 946684800,
+    "rtc_mode": "frozen",
+    "sample_rate": 44100,
+    "timezone": "UTC",
+    "type": "metadata",
+    "version": "v1.29.0.0 a50d5ac"
+  },
+  "schema_version": 1,
+  "source_commit": "a50d5ac288a81f2104ddf43195a4efdd15c72227",
+  "state_after_600_frames": {
+    "after_frames": 600,
+    "bytes": 32577,
+    "sha256": "4dc9c1bcece3715516f3bdacb945caa224c7e414ed450577c5061b08d3d6d209",
+    "type": "state"
+  },
+  "toolchain": {
+    "g++": "Debian 14.2.0-19",
+    "gcc": "Debian 14.2.0-19",
+    "host": "Linux x86_64",
+    "make": "4.4.1"
+  }
+}

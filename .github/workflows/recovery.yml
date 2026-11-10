@@ -1,0 +1,22 @@
+name: Recovery source and reference checks
+on:
+  push:
+    branches: [recovery/native-port-rebuild]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  source-and-reference:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Check source and stock configuration
+        run: python3 tools/recovery-check.py
+      - name: Fetch pinned original NGPC core only
+        run: git submodule update --init third_party/ngpc/beetle-ngp-libretro
+      - name: Build original reference
+        run: bash tools/build-reference.sh
+      - name: Run source and no-cartridge reference checks
+        run: python3 -m unittest discover -s tests -v
