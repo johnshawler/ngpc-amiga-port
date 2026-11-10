@@ -66,3 +66,34 @@ metadata only. It does not exercise video, audio, emulated instructions, input
 response, serialization or gameplay. Run results must distinguish those checks
 from actual private cartridge tests. Even successful game replay only checks
 reference determinism; it does not establish native-port equivalence.
+
+## Read-only CPU/RAM/GPU oracle
+
+Build the instrumented core separately with bash tools/build-reference.sh --instrumented.
+The source export appends state-export.c.inc to its private build copy of
+libretro.c. The pinned submodule and unmodified core are unchanged. The build
+has a distinct hash and directory, and still executes the original game.
+
+Run: python3 reference/check_state_export.py --rom private-inputs/neo-turf-masters.ngc --frames 600
+This compares clean original and instrumented runs, including original video/audio
+and final serialization. It exercises the read-only export on every frame.
+Temporary commercial-derived snapshots are removed when that comparison ends.
+To retain private captures, use run.py with --core pointing to the instrumented
+core and --snapshot-dir inside ignored private-inputs or reference/runs.
+
+NGR1 version 1 is exactly 32,876 bytes. All numeric words are big-endian:
+- Header: magic NGR1, version 1, total byte count, 23 register words.
+- Registers: pc, sr, f_dash, gprBank[0..3][0..3], gpr[0..3], each stored as u32.
+- 16,384 RAM bytes representing source addresses 0x4000–0x7fff.
+- 16,384 GPU readable bytes representing 0x8000–0xbfff.
+
+This is a frame-boundary observation, not a restorable full-machine snapshot.
+GPU MMIO uses the pinned read-only ngpgfx_read8 implementation, including raster
+position and zero for unmapped reads. Internal rendering latches, timer phase,
+DMA and sound-private state are not exported. Do not assume this final-frame
+GPU state alone can reproduce every pixel drawn earlier in that frame.
+
+The 600-frame private input sequence passes original versus instrumented video,
+audio and final-state equivalence. Exported RAM matches libretro's independent
+RAM API; repeated reads are stable and short output buffers reject atomically.
+This establishes a bounded observation oracle, not native routine correctness.

@@ -10,3 +10,6 @@ amiga/hd/hello_aga
 /reference/build/
 __pycache__/
 *.pyc
+
+# State-oracle results contain private-input-derived hashes; keep local.
+/reference/checkpoint-state-export.json

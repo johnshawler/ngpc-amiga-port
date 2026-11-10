@@ -36,5 +36,13 @@ class ReferenceTests(unittest.TestCase):
         self.assertEqual(data['rtc_epoch'], 978307200)
         self.assertEqual(data['game_checks'], 'not_run_no_rom')
 
+    @unittest.skipUnless((ROOT / 'reference/build/instrumented/mednafen_ngp_libretro.so').exists(), 'Build instrumented reference first')
+    def test_instrumented_metadata(self):
+        command = [sys.executable, str(ROOT / 'reference/run.py')]
+        original = json.loads(subprocess.check_output(command, text=True))
+        observed = json.loads(subprocess.check_output(command + ['--core', str(ROOT / 'reference/build/instrumented/mednafen_ngp_libretro.so')], text=True))
+        self.assertNotEqual(original.pop('core_sha256'), observed.pop('core_sha256'))
+        self.assertEqual(original, observed)
+
 if __name__ == '__main__':
     unittest.main()

@@ -41,6 +41,8 @@ INPUT = C.CFUNCTYPE(C.c_int16, C.c_uint, C.c_uint, C.c_uint, C.c_uint)
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--rom', type=Path)
+    p.add_argument('--core', type=Path, default=ROOT / 'build/mednafen_ngp_libretro.so')
+    p.add_argument('--snapshot-dir', type=Path, help='Private per-frame CPU/RAM/GPU captures; requires instrumented core')
     p.add_argument('--frames', type=int, default=120)
     p.add_argument('--inputs', type=Path, help='JSON frame -> NGPC button list; absent frames release all buttons')
     p.add_argument('--epoch', type=int, default=946684800)
@@ -65,7 +67,7 @@ def main():
     process.time.restype = C.c_long
     if process.time(None) != args.epoch:
         raise RuntimeError('Clock interposition failed')
-    core_path = ROOT / 'build/mednafen_ngp_libretro.so'
+    core_path = args.core.resolve()
     core = C.CDLL(str(core_path))
     events = read_inputs(args.inputs)
     mask = 0
@@ -149,6 +151,15 @@ def main():
                 if not core.retro_serialize(state, size):
                     raise RuntimeError('Serialization failed')
                 return state.raw
+            if args.snapshot_dir:
+                args.snapshot_dir.mkdir(parents=True, exist_ok=True)
+                export = core.retro_reference_snapshot
+                export.argtypes = [C.c_void_p, C.c_size_t]
+                export.restype = C.c_size_t
+                core.retro_get_memory_data.argtypes = [C.c_uint]
+                core.retro_get_memory_data.restype = C.c_void_p
+                core.retro_get_memory_size.argtypes = [C.c_uint]
+                core.retro_get_memory_size.restype = C.c_size_t
             def step(n):
                 nonlocal mask
                 mask = events.get(n, 0)
@@ -156,7 +167,35 @@ def main():
                 core.retro_run()
                 if callback_errors or pixels is None:
                     raise RuntimeError(callback_errors or 'No video frame')
-                return dict(type='frame', frame=n, input_mask=mask, width=width, height=height, video_sha256=digest(pixels), audio_sha256=digest(audio), audio_samples=len(audio)//4)
+                extra = {}
+                if args.snapshot_dir:
+                    size = export(None, 0)
+                    if size != 32876:
+                        raise RuntimeError('Unexpected state export size')
+                    capture = C.create_string_buffer(size)
+                    # Insufficient capacity must be an inert rejection.
+                    C.memset(capture, 0xa5, size)
+                    if export(capture, size - 1) != 0 or capture.raw != bytes([0xa5]) * size:
+                        raise RuntimeError('Non-atomic export rejection')
+                    if export(capture, size) != size:
+                        raise RuntimeError('State export failed')
+                    blob = capture.raw
+                    if export(capture, size) != size or blob != capture.raw:
+                        raise RuntimeError('Export is not stable')
+                    if core.retro_get_memory_size(2) != 16384:
+                        raise RuntimeError('Unexpected system RAM size')
+                    ram = C.string_at(core.retro_get_memory_data(2), 16384)
+                    if blob[108:108+16384] != ram:
+                        raise RuntimeError('Export differs from libretro RAM')
+                    path = args.snapshot_dir / ('frame-%06d.ngr1' % n)
+                    # Replay checks must not overwrite the first trace.
+                    if path.exists():
+                        if path.read_bytes() != blob:
+                            raise RuntimeError('Existing snapshot differs')
+                    else:
+                        path.write_bytes(blob)
+                    extra['cpu_ram_gpu_sha256'] = digest(blob)
+                return dict(type='frame', frame=n, input_mask=mask, width=width, height=height, video_sha256=digest(pixels), audio_sha256=digest(audio), audio_samples=len(audio)//4, **extra)
             for frame in range(args.frames):
                 print(json.dumps(step(frame), sort_keys=True))
             state = snapshot()

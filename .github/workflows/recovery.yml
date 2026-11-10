@@ -18,5 +18,7 @@ jobs:
         run: git submodule update --init third_party/ngpc/beetle-ngp-libretro
       - name: Build original reference
         run: bash tools/build-reference.sh
+      - name: Build read-only state instrumentation
+        run: bash tools/build-reference.sh --instrumented
       - name: Run source and no-cartridge reference checks
         run: python3 -m unittest discover -s tests -v

@@ -27,3 +27,10 @@ Checkpoint R1:
 - Source-safe results: reference/checkpoint-neo-turf.json. Private ROMs and output states are not committed.
 - CI builds the pinned original reference and runs only source/no-cartridge checks. Real-cartridge checks remain local/private.
 - No Amiga game implementation or speed claim.
+
+Checkpoint R2:
+- Separate read-only state export added for 23 TLCS register values, 16 KiB RAM and 16 KiB readable GPU memory, with fixed versioned big-endian format.
+- 600 real-cartridge frames match unmodified video/audio and final core state while exporting every frame. No upstream submodule changes.
+- Ten unit/smoke checks pass; instrumented build is separately identified.
+- These frame-boundary snapshots omit internal latches, peripheral and sound state; they are not restorable machine states or proof of frame rendering equivalence.
+- Native gameplay and Amiga rendering remain to be reimplemented.
