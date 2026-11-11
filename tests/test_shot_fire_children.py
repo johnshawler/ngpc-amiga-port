@@ -22,3 +22,6 @@ class ShotFireChildrenTests(unittest.TestCase):
 
     def test_golfer_animation(self):
         self.run_native("shot_golfer_animation course_screen test_shot_golfer_animation", "shot golfer animation:")
+
+    def test_golfer_features(self):
+        self.run_native("shot_golfer_features shot_aim shot_math test_shot_golfer_features", "shot golfer features:")
