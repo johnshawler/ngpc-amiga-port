@@ -10,6 +10,7 @@ struct ntm_task {
     ntm_task_callback callback;
     ntm_task *previous,*next,*owner;
     uint8_t priority,result,flags;
+    uint16_t delay;
 };
 struct ntm_task_context {
     ntm_task *free_head,*current,*published;

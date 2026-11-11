@@ -43,3 +43,30 @@ lifecycle-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c task_lifecycle.c -o $(BUILD)/lifecycle-68020.o
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(LIFECYCLE) -o $(BUILD)/test-lifecycle-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-lifecycle-68020
+
+ALLOCATION=task_allocation.c test_task_allocation.c
+.PHONY: allocation allocation-sanitize allocation-m68020
+allocation: | $(BUILD)
+	$(CC) $(FLAGS) $(ALLOCATION) -o $(BUILD)/test-allocation
+	$(BUILD)/test-allocation
+allocation-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(ALLOCATION) -o $(BUILD)/test-allocation-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-allocation-sanitize
+allocation-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c task_allocation.c -o $(BUILD)/allocation-68020.o
+	test -z "$$(m68k-linux-gnu-nm -u $(BUILD)/allocation-68020.o)"
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(ALLOCATION) -o $(BUILD)/test-allocation-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-allocation-68020
+
+PARENT=input_state.c course_choice.c task_lifecycle.c task_allocation.c course_parent.c test_course_parent.c
+.PHONY: parent parent-sanitize parent-m68020
+parent: | $(BUILD)
+	$(CC) $(FLAGS) $(PARENT) -o $(BUILD)/test-parent
+	$(BUILD)/test-parent
+parent-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(PARENT) -o $(BUILD)/test-parent-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-parent-sanitize
+parent-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c course_parent.c -o $(BUILD)/parent-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(PARENT) -o $(BUILD)/test-parent-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-parent-68020

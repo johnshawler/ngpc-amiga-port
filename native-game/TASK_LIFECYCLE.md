@@ -106,3 +106,8 @@ Target build/run use `--lifecycle-benchmark` and the same configured toolchain,
 PUAE and private Kickstart as the earlier fixtures. Public CI builds the observer
 and runs synthetic/no-cartridge tests; it does not run the private gameplay traces
 or stock-target firmware fixture.
+
+Allocation, descendant cleanup and initial course-parent transitions are now
+available in [COURSE_PARENT.md](COURSE_PARENT.md), with explicitly suspended
+external service requests. The earlier timing above belongs to this document's
+original lifecycle checkpoint, not to the later parent/allocation code.

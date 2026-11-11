@@ -59,6 +59,9 @@ def main():
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--control-check', action='store_true', help='Compare native input-state routine at original boundaries')
     p.add_argument('--control-cases', action='store_true', help='Run isolated original/native input-state cases before frames')
+    p.add_argument('--parent-cases', action='store_true')
+    p.add_argument('--allocation-check', action='store_true')
+    p.add_argument('--allocation-cases', action='store_true')
     p.add_argument('--lifecycle-check', action='store_true', help='Compare native task completion against original')
     p.add_argument('--lifecycle-cases', action='store_true', help='Run isolated task completion differential cases')
     p.add_argument('--course-check', action='store_true', help='Compare native course selector state/effects')
@@ -69,6 +72,8 @@ def main():
     p.add_argument('--state-out', type=Path)
     p.add_argument('--replay-check', type=int, default=0, help='Restore final state and compare this many additional frames')
     args = p.parse_args()
+    if args.parent_cases:args.allocation_check=True
+    if args.allocation_check or args.allocation_cases:args.lifecycle_check=True
     if args.lifecycle_check or args.lifecycle_cases:args.course_check = True
     if args.course_check or args.course_cases:args.control_check = True
     if args.capture_every < 1:
@@ -217,6 +222,23 @@ def main():
                     if failures or lifecycle_count(3) != 139264:
                         raise RuntimeError('Lifecycle cases failed: %s' % failures)
                     print('PASS original/native lifecycle cases: %s' % lifecycle_count(3), file=sys.stderr)
+            if args.allocation_check or args.allocation_cases:
+                allocation_count = core.retro_reference_allocation_count
+                allocation_count.argtypes = [C.c_uint]
+                allocation_count.restype = C.c_uint64
+                if args.allocation_cases:
+                    cases = core.retro_reference_allocation_selftest
+                    cases.restype = C.c_uint64
+                    failures = cases()
+                    if failures or allocation_count(3) != 131328:
+                        raise RuntimeError('Allocation cases failed: %s' % failures)
+                    print('PASS original/native allocation cases: %s' % allocation_count(3), file=sys.stderr)
+            if args.parent_cases:
+                cases=core.retro_reference_parent_selftest;cases.restype=C.c_uint64
+                count=core.retro_reference_parent_count;count.restype=C.c_uint64
+                failures=cases()
+                if failures or count()!=66304:raise RuntimeError('Parent cases failed: %s' % failures)
+                print('PASS original/native parent cases: %s' % count(),file=sys.stderr)
             if args.scene_check:
                 scene_count = core.retro_reference_scene_count
                 scene_count.argtypes = [C.c_uint]
@@ -256,6 +278,10 @@ def main():
                     if counts[1] or counts[2]:
                         raise RuntimeError('Native lifecycle mismatch/boundary: %s' % counts)
                     extra.update(zip(['lifecycle_calls','lifecycle_deferred','lifecycle_unlinked','lifecycle_recycled'],[counts[0],*counts[4:7]]))
+                if args.allocation_check:
+                    counts=[allocation_count(i) for i in range(6)]
+                    if counts[1] or counts[2]:raise RuntimeError('Native allocation mismatch/boundary: %s' % counts)
+                    extra.update(zip(['allocation_calls','allocation_success','allocation_exhausted'],[counts[0],*counts[4:6]]))
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
                     if counts[2] or counts[3]:
