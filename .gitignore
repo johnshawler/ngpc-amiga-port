@@ -3,3 +3,11 @@ logs/
 /rom/
 *.rom
 amiga/hd/hello_aga
+# ROM-derived analysis output and built tools
+/build/
+tools/tlcs900dasm/ngpc-dis
+tools/tlcs900dasm/*.o
+tools/tlcs900dasm/vendor/*.o
+tools/ngpc-trace/ngpc-trace
+tools/ngpc-trace/build/
+__pycache__/

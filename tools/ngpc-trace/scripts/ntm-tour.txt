@@ -1,0 +1,41 @@
+# Neo Turf Masters: boot -> menus -> first hole, dumping VRAM at each screen, then random play.
+wait 360
+dump 00_intro
+wait 600
+dump 01_title
+press a 4
+wait 120
+dump 02_mode_menu
+press a 4
+wait 120
+dump 03_1p_menu
+press a 4
+wait 150
+dump 04_golfer_select
+press a 4
+wait 150
+dump 05_course_select
+press a 4
+wait 200
+dump 06_course_splash
+press a 4
+wait 200
+dump 07_round_start
+press a 4
+wait 150
+dump 08_tee_shot
+press a 4
+wait 120
+dump 09_aim_view
+press a 4
+wait 30
+press a 4
+wait 300
+dump 10_ball_flight
+cov after_tour
+mash 20000 0x1234
+dump 11_after_mash_1
+mash 20000 0xbeef
+dump 12_after_mash_2
+mash 20000 0x5eed
+dump 13_after_mash_3

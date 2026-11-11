@@ -20,6 +20,11 @@ Workspace for porting a Neo Geo Pocket Color (NGPC) game to the Commodore Amiga.
 | `tools/setup-ubuntu.sh` | Installs emulators and build deps |
 | `src/hello_aga/` | A1200 AGA smoke test (toolchain + emulator check) |
 | `docs/neo-turf-masters.md` | Notes on the game being ported |
+| `docs/reverse-engineering.md` | Disassembly / graphics-extraction tools and findings |
+| `tools/analyze.sh` | Runs trace → disassembly → VRAM decode → ROM asset map into `build/` |
+| `tools/ngpc-trace/` | Headless NGPC runner with code coverage and VRAM dumps |
+| `tools/tlcs900dasm/` | `ngpc-dis` recursive-descent TLCS-900/H disassembler (MAME decoder) |
+| `tools/ngpc-gfx/` | VRAM decoder and ROM graphics locator/exporter |
 
 All sources are git submodules pinned to the commit that was evaluated; each keeps its own licence.
 
