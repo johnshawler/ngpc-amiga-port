@@ -34,5 +34,6 @@ m68k-linux-gnu-ld -Ttext=0 -e _start --emit-relocs "$OUT/entry.o" "${OBJECTS[@]}
 test -z "$(m68k-linux-gnu-nm -u "$OUT/intro.elf")"
 "$AMIGA_BIN/elf2hunk" "$OUT/intro.elf" "$OUT/intro.exe" -s
 "$AMIGA_BIN/exe2adf" -i "$OUT/intro.exe" -a "$OUT/intro.adf" -l NATIVE_INTRO
+python3 "$ROOT/tools/verify-adf-file.py" --adf "$OUT/intro.adf" --file intro.exe --source "$OUT/intro.exe"
 m68k-linux-gnu-size "$OUT/intro.elf"
 sha256sum --status -c "$OUT/build-sources.sha256"

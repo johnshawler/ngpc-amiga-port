@@ -33,4 +33,5 @@ m68k-linux-gnu-ld -Ttext=0 -e _start --emit-relocs "$OUT/entry.o" "${OBJECTS[@]}
 test -z "$(m68k-linux-gnu-nm -u "$OUT/selector.elf")"
 "$AMIGA_BIN/elf2hunk" "$OUT/selector.elf" "$OUT/selector.exe" -s
 "$AMIGA_BIN/exe2adf" -i "$OUT/selector.exe" -a "$OUT/selector.adf" -l NATIVE_SELECTOR
+python3 "$ROOT/tools/verify-adf-file.py" --adf "$OUT/selector.adf" --file selector.exe --source "$OUT/selector.exe"
 m68k-linux-gnu-size "$OUT/selector.elf"

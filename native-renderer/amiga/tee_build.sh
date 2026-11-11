@@ -38,5 +38,6 @@ m68k-linux-gnu-ld -Ttext=0 -e _start --emit-relocs "$OUT/entry.o" "${OBJECTS[@]}
 test -z "$(m68k-linux-gnu-nm -u "$OUT/tee.elf")"
 "$AMIGA_BIN/elf2hunk" "$OUT/tee.elf" "$OUT/tee.exe" -s
 "$AMIGA_BIN/exe2adf" -i "$OUT/tee.exe" -a "$OUT/tee.adf" -l NATIVE_TEE
+python3 "$ROOT/tools/verify-adf-file.py" --adf "$OUT/tee.adf" --file tee.exe --source "$OUT/tee.exe"
 m68k-linux-gnu-size "$OUT/tee.elf"
 sha256sum --status -c "$OUT/build-sources.sha256"
