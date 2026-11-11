@@ -71,5 +71,22 @@ class NativeRendererTests(unittest.TestCase):
             result = subprocess.run([exe], check=True, capture_output=True, text=True)
             self.assertIn('PASS event dependencies', result.stdout)
 
+    def test_fine_event_renderer(self):
+        self.run_event_variant('fine_event', ['scene_renderer.c', 'fine_event_renderer.c'])
+
+    def test_adaptive_renderer(self):
+        self.run_event_variant('adaptive', ['scene_renderer.c', 'fine_event_renderer.c', 'adaptive_renderer.c'])
+
+    def run_event_variant(self, name, sources):
+        compiler = shlex.split(os.environ.get('CC', 'cc'))
+        if not compiler or not shutil.which(compiler[0]):
+            self.skipTest('A host C compiler is required')
+        with tempfile.TemporaryDirectory() as d:
+            exe = str(Path(d) / (name + '-test'))
+            subprocess.run(compiler + ['-std=c99', '-O2', '-Wall', '-Wextra', '-Werror'] +
+                [str(ROOT / 'native-renderer' / f) for f in sources + ['test_' + name + '.c']] +
+                ['-o', exe], check=True)
+            subprocess.run([exe], check=True, capture_output=True, text=True)
+
 if __name__ == '__main__':
     unittest.main()

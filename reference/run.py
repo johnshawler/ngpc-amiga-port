@@ -210,6 +210,10 @@ def main():
                     extra['event_composed_rows'] = scene_count(10)
                     extra['event_reused_rows'] = scene_count(11)
                     extra['event_notifications'] = scene_count(12)
+                    extra['fine_composed_rows'] = scene_count(13)
+                    extra['fine_reused_rows'] = scene_count(14)
+                    extra['adaptive_fallback_rows'] = scene_count(15)
+                    extra['adaptive_cached_rows'] = scene_count(16)
                 if args.snapshot_dir:
                     size = export(None, 0)
                     if size != 32876:

@@ -6,7 +6,9 @@
 #endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 #ifdef NR_BENCH
-#ifdef NR_EVENT_BENCH
+#ifdef NR_ADAPTIVE_BENCH
+#include "adaptive_benchmark.inc"
+#elif defined(NR_EVENT_BENCH)
 #include "event_benchmark.inc"
 #elif defined(NR_PLANAR_BENCH)
 #include "planar_benchmark.inc"

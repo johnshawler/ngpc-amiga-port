@@ -34,3 +34,8 @@ compared independently at draw time. Counters 10–12 report composed rows, reus
 rows and changed-byte notifications. Instrumentation does not change original
 state; this does not imply that a native game currently emits those writes.
 See `native-renderer/EVENT_VALIDATION.md` for the API contract and measured limits.
+
+Fine dependencies and adaptive selection are also compared on each original
+scanline. Counters 13–16 report fine composed/reused rows and adaptive
+fallback/cached requests. Sprite palette indices are routed separately from
+sprite descriptor writes. Reset/load invalidation reaches all three event caches.

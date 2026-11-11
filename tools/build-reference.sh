@@ -22,7 +22,7 @@ if [ "$MODE" = instrumented ]; then
     cat "$ROOT/reference/state-export.c.inc" >> "$STAGE/core-source/libretro.c"
 fi
 if [ "$MODE" = scene ]; then
-    cp "$ROOT/native-renderer/scene_renderer.c" "$ROOT/native-renderer/scene_renderer.h" "$ROOT/native-renderer/event_renderer.c" "$ROOT/native-renderer/event_renderer.h" "$ROOT/native-renderer/tile_renderer.h" "$STAGE/core-source/mednafen/ngp/"
+    cp "$ROOT/native-renderer/scene_renderer.c" "$ROOT/native-renderer/scene_renderer.h" "$ROOT/native-renderer/event_renderer.c" "$ROOT/native-renderer/event_renderer.h" "$ROOT/native-renderer/fine_event_renderer.c" "$ROOT/native-renderer/fine_event_renderer.h" "$ROOT/native-renderer/adaptive_renderer.c" "$ROOT/native-renderer/adaptive_renderer.h" "$ROOT/native-renderer/tile_renderer.h" "$STAGE/core-source/mednafen/ngp/"
     python3 - "$STAGE/core-source/mednafen/ngp/gfx.c" "$ROOT/reference/scene-check.c.inc" <<'PYHOOK'
 from pathlib import Path
 import sys
@@ -38,10 +38,10 @@ source=source.replace(write,write+'\n   reference_scene_write(gfx,address,data);
 reset='void ngpgfx_reset(ngpgfx_t *gfx)'
 # The event observer must also see resets and save-state bulk replacement.
 assert source.count(reset)==1
-source=source.replace(reset+'\n{',reset+'\n{\n   nr_event_invalidate_all(&event_cache);')
+source=source.replace(reset+'\n{',reset+'\n{\n   nr_event_invalidate_all(&event_cache);nr_fine_event_invalidate_all(&fine_cache);nr_adaptive_invalidate_all(&adaptive_cache);')
 state='   if(!MDFNSS_StateAction(sm, load, data_only, StateRegs, "GFX", false))'
 assert source.count(state)==1
-source=source.replace(state,'   if(load)nr_event_invalidate_all(&event_cache);\n'+state)
+source=source.replace(state,'   if(load){nr_event_invalidate_all(&event_cache);nr_fine_event_invalidate_all(&fine_cache);nr_adaptive_invalidate_all(&adaptive_cache);}\n'+state)
 p.write_text(source)
 PYHOOK
 fi

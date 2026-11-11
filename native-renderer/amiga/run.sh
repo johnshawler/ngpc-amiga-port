@@ -13,7 +13,8 @@ case "${1:-}" in
     --composition-benchmark) OUT="$ROOT/build/native-composition-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
     --direct-benchmark) OUT="$ROOT/build/native-direct-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
     --event-benchmark) OUT="$ROOT/build/native-event-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
-    *) echo 'usage: run.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark]'  >&2; exit 2 ;;
+    --adaptive-benchmark) OUT="$ROOT/build/native-adaptive-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
+    *) echo 'usage: run.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark|--adaptive-benchmark]'  >&2; exit 2 ;;
 esac
 : "${PUAE_CORE:?Set PUAE_CORE to built official libretro PUAE shared core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
@@ -42,4 +43,8 @@ fi
 
 if [ "${1:-}" = --event-benchmark ]; then
     python3 "$ROOT/native-renderer/amiga/verify_event_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
+fi
+
+if [ "${1:-}" = --adaptive-benchmark ]; then
+    python3 "$ROOT/native-renderer/amiga/verify_adaptive_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
 fi

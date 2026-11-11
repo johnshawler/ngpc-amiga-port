@@ -94,3 +94,6 @@ Explicit-write dependency investigation: [EVENT_VALIDATION.md](EVENT_VALIDATION.
 
 A separate [genuine Blitter batching experiment](amiga/blitter_README.md) measures
 prepared-plane cookie-cut work only. It is not integrated scene acceleration.
+
+[Fine dependencies and adaptive redraw](ADAPTIVE_VALIDATION.md) preserve the
+coarse baseline and require the same explicit graphics-write contract.

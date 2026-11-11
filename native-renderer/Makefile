@@ -72,3 +72,25 @@ event-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c event_renderer.c -o $(BUILD)/event-renderer-68020.o
 	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c event_renderer.c test_event.c -o $(BUILD)/test-event-68020
 	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-event-68020
+
+.PHONY: fine_event fine_event-sanitize fine_event-m68020
+fine_event: | $(BUILD)
+	$(CC) $(FLAGS) scene_renderer.c fine_event_renderer.c test_fine_event.c -o $(BUILD)/test-fine_event
+	$(BUILD)/test-fine_event
+fine_event-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -g -fsanitize=address,undefined -fno-omit-frame-pointer scene_renderer.c fine_event_renderer.c test_fine_event.c -o $(BUILD)/test-fine_event-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-fine_event-sanitize
+fine_event-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c fine_event_renderer.c test_fine_event.c -o $(BUILD)/test-fine_event-68020
+	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-fine_event-68020
+
+.PHONY: adaptive adaptive-sanitize adaptive-m68020
+adaptive: | $(BUILD)
+	$(CC) $(FLAGS) scene_renderer.c fine_event_renderer.c adaptive_renderer.c test_adaptive.c -o $(BUILD)/test-adaptive
+	$(BUILD)/test-adaptive
+adaptive-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -g -fsanitize=address,undefined -fno-omit-frame-pointer scene_renderer.c fine_event_renderer.c adaptive_renderer.c test_adaptive.c -o $(BUILD)/test-adaptive-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-adaptive-sanitize
+adaptive-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c fine_event_renderer.c adaptive_renderer.c test_adaptive.c -o $(BUILD)/test-adaptive-68020
+	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-adaptive-68020
