@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-2.0-or-later
 """Compare exported private bindings with independent original resource resolvers."""
-import ctypes as C,subprocess
+import argparse,ctypes as C,subprocess
 from pathlib import Path
 import shot_application_case_common as S
 import shot_aim_application_case_common as A
@@ -11,7 +11,11 @@ import shot_markers_case_common as MK
 from aim_object_assets import resolve_scene
 import tee_setup_case_common as T
 import hole_prepare_case_common as H
-ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'build/native-aim'
+ROOT=Path(__file__).resolve().parents[1]
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--directory',type=Path,default=ROOT/'build/native-aim')
+OUT=parser.parse_args().directory.resolve()
+if not OUT.is_relative_to((ROOT/'build').resolve()):raise ValueError('Private generated assets must stay under ignored build/')
 source='''#define NTM_AIM_OPEN_TARGET
 #include "shot_open_application.h"
 #include "aim_unpack.h"
@@ -126,7 +130,7 @@ for i in range(12):
  blob(c.powers[i],CL.club_resources.powers[i],'data','size')
  for j in range(15):
   for name in ('lies','overflow_lies'):blob(getattr(c,name)[i][j],getattr(CL.club_resources,name)[i][j],'data','size')
-for name,count in (('labels',23),('digits',11),('lie_icons',19)):
+for name,count in (('labels',23),('digits',11),('lie_icons',19),('highlights',23)):
  for i in range(count):asset(getattr(c,name)[i],getattr(CL.club_resources,name)[i])
 m=obj(15,MK.MarkerResources)
 for name in ('quarter','metadata'):blob(m,MK.marker_resources,name,name+'_size')
@@ -135,4 +139,4 @@ for velocity,(b,n) in resolved['animations'].items():
  x=o.animations[velocity//4];assert x.frames==n and x.size==len(b) and read(x.data,x.size)==b;checks+=1
 for name in ('shapes','tiles'):
  assert read(getattr(o,name),getattr(o,name+'_size'))==resolved[name];checks+=1
-print('aim opening resources:',checks,'total independent exact span checks PASS')
+print('aim opening and club highlight resources:',checks,'total independent exact span checks PASS')

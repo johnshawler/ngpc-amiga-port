@@ -23,6 +23,8 @@ static void start(ntm_course_driver *d,ntm_course_screen *screen,ntm_service54_s
     d->random_cursor=&cursor;d->tiles=tiles;d->maps=maps;d->service_pump=head;d->service_tail=tail;d->completion_submit=submit;
     d->parent.viewport[2]=160;d->parent.viewport[3]=152;assert(!(intro?ntm_course_driver_start_intro(d,table):ntm_course_driver_start(d)));
 }
+static int boundary_task(ntm_task_context *c,ntm_task *t){assert(c->published==t);return NTM_TASK_BOUNDARY;}
+static int boundary_head(void *p){(void)p;assert(heads==1 && tails==0);return NTM_TASK_BOUNDARY;}
 int main(void)
 {
     ntm_course_driver d;ntm_course_screen screen;ntm_service54_state queue;ntm_display_reset_state display;ntm_screen_asset labels[3];unsigned mode,steps;
@@ -46,5 +48,10 @@ int main(void)
     for(steps=0;steps<7;steps++){assert(!ntm_course_driver_update(&d,0));assert(d.nodes[1].next==d.nodes);}
     assert(!ntm_course_driver_update(&d,8) && d.context.selection==1 && d.nodes[1].next==d.nodes+3);
     assert(screen.stamp_bytes==8 && d.nodes[1].substate==14);
+    start(&d,&screen,&queue,&display,labels,0);d.pre_task=boundary_head;
+    assert(ntm_course_driver_update(&d,4)==1 && !d.running && !d.updates && heads==1 && !tails && controls[0]==4);
+    start(&d,&screen,&queue,&display,labels,0);d.nodes[1].callback=boundary_task;
+    assert(ntm_course_driver_update(&d,8)==1 && !d.running && !d.updates && heads==1 && !tails);
+    assert(d.context.current==d.nodes+1 && d.context.published==d.nodes+1 && controls[0]==8);
     puts("PASS native course driver: navigation, deferred drawing, confirmation, cancellation and random choice");return 0;
 }

@@ -19,6 +19,8 @@ typedef struct {
     const ntm_shot_open_resources *resources;
     uint8_t saved_map[32],phase,handlers_installed,input_dispatch;
     uint32_t open_update;
+    /* Optional converted continuations. NULL retains the tested opening target. */
+    ntm_task_callback visible_continuation,camera_continuation,club_continuation;
 } ntm_shot_open_application;
 /* Enable after both base start and aim enable, before the first update. The
  * real209830 child allocation order, same-call waits, child init/ticks and

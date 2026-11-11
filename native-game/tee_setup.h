@@ -28,7 +28,8 @@ struct ntm_tee_setup_context {
     const uint8_t *handicaps; /* Caller41ee state; normal child never reads it. */
     uint8_t reset_kind,language;
     int (*prepare)(void *,ntm_tee_setup_context *);void *prepare_context;
-    /* service0 means original250020, service1 means250024. Requests only,
+    /* service0 means original250020, service1 means250024, service2 means
+     *25001c (WA command,C parameter). Requests only,
      * never a claim of native audio synthesis. Original init uses value8. */
     void (*sound_request)(void *,uint8_t,uint16_t,uint16_t);void *sound_context;
 };

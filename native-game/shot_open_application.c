@@ -13,15 +13,15 @@ static int open_hint_tick(ntm_task_context *c,ntm_task *t)
 static int open_hint_entry(ntm_task_context *c,ntm_task *t)
 {ntm_shot_open_application *a=(ntm_shot_open_application *)c;return open_result(a,ntm_shot_hint_initialize(&a->hint,t,c,a->base.base.base.context.input_mode));}
 static int open_camera_active(ntm_task_context *c,ntm_task *t)
-{(void)t;return open_result((ntm_shot_open_application *)c,2);}
+{ntm_shot_open_application *a=(ntm_shot_open_application *)c;return a->camera_continuation?a->camera_continuation(c,t):open_result(a,2);}
 static int open_camera_tick(ntm_task_context *c,ntm_task *t)
-{ntm_shot_open_application *a=(ntm_shot_open_application *)c;return open_result(a,ntm_shot_camera_tick(&a->camera,t));}
+{ntm_shot_open_application *a=(ntm_shot_open_application *)c;int r=ntm_shot_camera_tick(&a->camera,t);return r==2 && a->camera_continuation?a->camera_continuation(c,t):open_result(a,r);}
 static int open_camera_entry(ntm_task_context *c,ntm_task *t)
 {ntm_shot_open_application *a=(ntm_shot_open_application *)c;return open_result(a,ntm_shot_camera_initialize(&a->camera,t));}
 static int open_club_tick(ntm_task_context *c,ntm_task *t)
-{ntm_shot_open_application *a=(ntm_shot_open_application *)c;(void)t;return open_result(a,ntm_shot_club_tick(&a->club,&a->scene_context));}
+{ntm_shot_open_application *a=(ntm_shot_open_application *)c;return a->club_continuation?a->club_continuation(c,t):open_result(a,ntm_shot_club_tick(&a->club,&a->scene_context));}
 static int open_club_entry(ntm_task_context *c,ntm_task *t)
-{ntm_shot_open_application *a=(ntm_shot_open_application *)c;return open_result(a,ntm_shot_club_initialize(&a->club,t,&a->scene_context,a->resources->club));}
+{ntm_shot_open_application *a=(ntm_shot_open_application *)c;int r=ntm_shot_club_initialize(&a->club,t,&a->scene_context,a->resources->club);return !r && a->club_continuation?a->club_continuation(c,t):open_result(a,r);}
 static void marker_input(ntm_shot_open_application *a)
 {a->marker_context.held=a->base.base.base.base.selector.controls[0];a->marker_context.player_status=a->base.base.scene.player_status;}
 static int open_marker_tick(ntm_task_context *c,ntm_task *t)
@@ -43,8 +43,9 @@ static int open_wait(ntm_task_context *c,ntm_task *t)
     /*2098af and2098ee's same-call first decrement. No later input dispatch
      * occurs in this bounded application; handler identities are owned state. */
     v[0]=v[1]=0;v[2]=160;v[3]=152;a->handlers_installed=1;a->input_dispatch=0;
-    t->delay=3;t->callback=open_visible_delay;a->phase=2;
+    t->delay=3;t->callback=a->visible_continuation?a->visible_continuation:open_visible_delay;a->phase=2;
     a->open_update=d->updates+1;a->base.base.complete_update=a->open_update;
+    if(a->visible_continuation)return 0;
     a->base.base.boundary=NTM_SHOT_BOUNDARY_AIM_OPEN;d->running=0;return 0;
 }
 static int open_scene_entry(ntm_task_context *c,ntm_task *t)

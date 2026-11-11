@@ -15,11 +15,10 @@ int ntm_shot_club_redraw(ntm_shot_club *s,ntm_shot_scene_object_context *c,
     const uint8_t *player,*power,*lie;ntm_course_intro_context *i;ntm_course_screen *screen;
     unsigned modifier,golfer,terrain,club,label,icon,j,overflow;const ntm_shot_club_table *lie_table;uint16_t distance,strength;uint8_t digits[3];uint32_t scratch;
     if(!valid(s,c,r))return -1;
-    if(s->restore_delay)return 2;
     player=c->hole->players[c->player->active_player];golfer=player[1];modifier=(uint8_t)(golfer+player[0x33]);
     terrain=c->hole->hole[0x70];club=(uint8_t)(c->aim->club+s->delta);
-    if(club<s->minimum)club=s->maximum;
-    if(club>s->maximum)club=s->minimum;
+    if((club^128u)<(s->minimum^128u))club=s->maximum;
+    if((club^128u)>(s->maximum^128u))club=s->minimum;
     if(modifier>=12 || terrain>=15 || club>=14 || !r->powers[modifier].data || r->powers[modifier].size<56)return -1;
     /*200513 leaves BC=0100 when the final digit request is dropped. Original
      *20da24 overwrites C only, so its three-byte record offset gains0300.
@@ -46,6 +45,8 @@ int ntm_shot_club_redraw(ntm_shot_club *s,ntm_shot_scene_object_context *c,
     if(ntm_course_screen_enqueue_stamp(screen,r->lie_icons+(overflow?0:icon),0x380,0x22da)<0 ||
        ntm_shot_scene_power_limit(c->hole,c->player,c->aim->club,r->scene)<0 ||
        ntm_shot_scene_power_position(c)<0)return -1;
+    if(s->restore_delay && ntm_course_screen_enqueue_stamp(screen,r->highlights+label,
+        0x10e,player[0x33]?0x3ae4:0x20e4)<0)return -1;
     return 0;
 }
 int ntm_shot_club_initialize(ntm_shot_club *s,ntm_task *t,
@@ -64,7 +65,30 @@ int ntm_shot_club_initialize(ntm_shot_club *s,ntm_task *t,
 int ntm_shot_club_tick(ntm_shot_club *s,ntm_shot_scene_object_context *c)
 {
     if(!s || !c || !c->aim || !c->hole || s->phase!=1)return -1;
-    if(c->aim->reset_d1>=2)return 0;
+    if((c->aim->reset_d1^128u)>=130u)return 0;
     if(c->aim->reset_4416 || s->restore_delay || s->delta)return 2;
     return 0;
+}
+
+int ntm_shot_club_control(ntm_shot_club *s,ntm_shot_scene_object_context *c,
+    const ntm_shot_club_resources *r,uint8_t held,uint8_t pressed)
+{
+    unsigned edge,row,j;ntm_tee_setup_context *shared;
+    if(!valid(s,c,r) || s->phase!=1)return -1;
+    /*20ad20 RET GE is signed, unlike a host unsigned byte comparison. */
+    if((c->aim->reset_d1^128u)>=130u)return 0;
+    edge=pressed&3u;
+    if(!c->aim->reset_4416 && !c->hole->hole[0x77] && !(held&12u) &&
+       (edge==1 || edge==2)) {
+        s->delta=(uint8_t)(edge==1?255:1);s->restore_delay=32;s->change_flag=255;
+        shared=c->shared;
+        if(shared->sound_request)shared->sound_request(shared->sound_context,2,0,0);
+    }
+    if(s->restore_delay) {
+        if(s->restore_delay==1 && (!c->saved_map || !c->shared->intro->maps))return -1;
+        s->restore_delay--;
+        if(!s->restore_delay)for(row=0;row<4;row++)for(j=0;j<8;j++)
+            c->shared->intro->maps[0x10e +64*row+j]=c->saved_map[8*row+j];
+    }
+    return s->delta?ntm_shot_club_redraw(s,c,r):0;
 }

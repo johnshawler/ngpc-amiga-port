@@ -68,14 +68,22 @@ int ntm_course_driver_start(ntm_course_driver *d)
 }
 int ntm_course_driver_update(ntm_course_driver *d,uint8_t buttons)
 {
-    unsigned budget=8;
+    unsigned budget=8;int outcome;
     if(!d || !d->running)return -1;
     if(ntm_input_update(d->context.controls,buttons)<0 || d->service_pump(d->service_context)<0 ||
        ntm_course_screen_fill_queue(d->screen,d->maps)<0 || ntm_course_screen_stamp_queue(d->screen,d->tiles,d->maps)<0)return -1;
     if(d->drawing_head && d->drawing_head(d->service_context)<0)return -1;
+    if(d->pre_task){
+        outcome=d->pre_task(d->pre_task_context);
+        if(outcome==NTM_TASK_BOUNDARY){d->running=0;return 1;}
+        if(outcome<0)return -1;
+    }
     d->context.current=d->nodes[0].next;
     while(d->context.current!=d->nodes) {
-        if(!budget-- || ntm_task_dispatch_one(&d->context)<0)return -1;
+        if(!budget--)return -1;
+        outcome=ntm_task_dispatch_one(&d->context);
+        if(outcome==NTM_TASK_BOUNDARY){d->running=0;return 1;}
+        if(outcome<0)return -1;
     }
     if(d->service_tail(d->service_context)<0)return -1;
     d->updates++;

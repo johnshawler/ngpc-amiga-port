@@ -87,6 +87,7 @@ class Resources(shot.Resources):
         for i in range(23):self.asset(f'c->labels[{i}]',0xb4,v(0x21b800+i,1))
         for i in range(11):self.asset(f'c->digits[{i}]',0xb4,4*(i+20))
         for i in range(19):self.asset(f'c->lie_icons[{i}]',0x9c,288+4*i)
+        for i in range(23):self.asset(f'c->highlights[{i}]',0xac,36+v(0x21b817+i,1))
         root=v(v(0x260024)+56)&0xbfffff;shapes=v(v(0x260028)+56)
         shape_end=tile_end=0;tile_root=None
         for velocity in (8,44,40,48,120,52,56,128,124,132):
@@ -135,7 +136,7 @@ def export(rom,output):
     lines += ['#ifdef NTM_AIM_OPEN_TARGET','static void open_resources(ntm_shot_open_resources *r,ntm_shot_scene_object_resources *s,ntm_shot_club_resources *c,ntm_shot_marker_resources *m,ntm_tee_object_assets *o,const ntm_shot_aim_resources *a){']+r.open_bindings+['}','#endif']
     output.parent.mkdir(parents=True,exist_ok=True);output.write_text('\n'.join(lines)+'\n')
     output.with_suffix('.raw').write_bytes(raw);output.with_suffix('.lz').write_bytes(packed)
-    report={'holes':54,'worlds':54,'panoramas':54,'aim_objects':54,'scene_animations':10,'club_power_tables':12,'lie_tables':360,'club_labels':23,'club_digits':11,'lie_icons':19,'bounded_spans':len(r.spans),'raw_span_bytes':sum(n for _,n in r.spans.values()),'deduplicated_pool_bytes':len(raw),'packed_pool_bytes':len(packed),'startup_output_bytes':len(raw),'packed_sha256':hashlib.sha256(packed).hexdigest(),'unpacked_sha256':hashlib.sha256(raw).hexdigest(),'independent_python_roundtrip':True,'merged_ranges':ranges}
+    report={'holes':54,'worlds':54,'panoramas':54,'aim_objects':54,'scene_animations':10,'club_power_tables':12,'lie_tables':360,'club_labels':23,'club_digits':11,'lie_icons':19,'club_highlights':23,'bounded_spans':len(r.spans),'raw_span_bytes':sum(n for _,n in r.spans.values()),'deduplicated_pool_bytes':len(raw),'packed_pool_bytes':len(packed),'startup_output_bytes':len(raw),'packed_sha256':hashlib.sha256(packed).hexdigest(),'unpacked_sha256':hashlib.sha256(raw).hexdigest(),'independent_python_roundtrip':True,'merged_ranges':ranges}
     output.with_suffix('.json').write_text(json.dumps(report,indent=2)+'\n');return report
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--rom',type=Path,default=ROOT/'private-inputs/neo-turf-masters.ngc');p.add_argument('--output',type=Path,default=ROOT/'build/native-aim/aim_assets.inc');a=p.parse_args();print(json.dumps(export(a.rom.read_bytes(),a.output),indent=2))

@@ -12,6 +12,7 @@ import tee_setup_case_common as TT
 import hole_prepare_case_common as H
 import compare_tee_objects as T
 import shot_application_case_common as S
+control_mode=bool(os.environ.get("NTM_SHOT_CONTROL_CONTINUATION"))
 open_mode=bool(os.environ.get("NTM_SHOT_OPEN_CONTINUATION"))
 if open_mode:import shot_open_application_case_common as OP
 aim_mode=bool(os.environ.get("NTM_SHOT_AIM_CONTINUATION")) or open_mode
@@ -56,6 +57,10 @@ if open_mode:
  app.bridge_open_pointer.argtypes=[C.c_uint];app.bridge_open_pointer.restype=C.c_void_p
  app.bridge_open_enable.argtypes=[C.c_void_p]
  def open_obj(n,t):return C.cast(app.bridge_open_pointer(n),C.POINTER(t)).contents
+if control_mode:
+ app.bridge_control_pointer.argtypes=[C.c_uint];app.bridge_control_pointer.restype=C.c_void_p
+ def control_obj(n,t):return C.cast(app.bridge_control_pointer(n),C.POINTER(t)).contents
+ class CameraState(C.Structure):_fields_=[('saved_x',U16),('saved_y',U16)]
 tee_shape_root=T.shape_root
 selector_shapes=native.shapes
 def obj(n,t):return C.cast(app.bridge_pointer(n),C.POINTER(t)).contents
@@ -90,11 +95,13 @@ for case in range(24):
  records=J.create_records(case%2,case%6,65535)
  if aim_mode:app.bridge_aim_reset()
  if open_mode:app.bridge_open_reset()
+ if control_mode:app.bridge_control_reset()
  assert app.bridge_start(C.byref(initial),C.byref(s),C.byref(disp),C.byref(p),I.assets,palettejobs,I.descriptor,fi,fo,rngtable,rng,C.byref(assets),tiles,maps,sprites,spal,controls,0,course_resources,C.byref(records))==0
  app.bridge_tee_state(1 if 24<=case<30 else 0,case%3,case>=30)
  if aim_mode:
   assert app.bridge_aim_enable(C.byref(A.resources))==0
   if open_mode:assert app.bridge_open_enable(C.byref(OP.open_resources))==0
+  if control_mode:assert app.bridge_control_enable()==0
   # Original2049eb defaults predate this opt-in selector-start fixture.
   for a,v in ((0x573c,0x9800),(0x573e,0x8110),(0x5740,0x8300)):store(a,v,2)
  s=obj(1,I.Screen);p=obj(3,I.Palette);disp=obj(2,I.Display);ni=obj(0,I.Init)
@@ -117,9 +124,13 @@ for case in range(24):
  rs=obj(35,S.Raster);rs.timer_run=(case*13+136)&255;rs.interrupt_shadow=(case*11)&255;rs.gpu_control=128
  store(0x20,rs.timer_run,1);store(0x7248,0xffffffff,4);store(0x6c27,rs.interrupt_shadow,1);store(0x6fd4,0x200471,4);store(0x8000,rs.gpu_control,1);store(0x5706,values[45],4);store(0x40fb,sel,2);store(0x4148,0,1);store(0x400e,rng[0],1);put(0x40bf,controls)
  for i,x in enumerate((80,0,0,152)):store(0x8002+i,x,1)
- sounds=[0,0,0];round_sounds=[];tee_sounds=[];tick=0
+ sounds=[0,0,0];round_sounds=[];tee_sounds=[];tick=0;control_age=0
  while True:
-  if tick<8:buttons=0
+  if control_mode and open_obj(5,U8).value==2:
+   # Authored held/edge sequence, not memory patches or stretched game waits.
+   seq=[0]*8+[4]*12+[8]*24+[0,1,0,2,0,1,0]+[0]*33+[32,40,40,32,36,36,32,33,33,34,34]+[0]*29
+   buttons=seq[control_age%len(seq)];control_age+=1
+  elif tick<8:buttons=0
   elif tick<28:buttons=0 if case<3 else (8,0,4,0,8,0,0,0,4,0)[(tick-8)%10]
   elif tick==28:buttons=16 if case<18 or case>=24 else 80 if case<21 else 32
   elif case>=6 and case<21 and shot_values[3]==3:buttons=16 if tick%2==0 else 0
@@ -130,6 +141,8 @@ for case in range(24):
   store(0x6f82,buttons,1);execute(0x2002c2);execute(0x202bce);execute(0x201c25);execute(0x20054f)
   if load(0x400d,1)&80==80:execute(0x20067c);execute(0x200aa6)
   store(0x400d,load(0x400d,1)&63,1)
+  if control_mode and aim_obj(3,U8).value and load(0x400d,1)&8:execute(0x201608)
+  if control_mode and open_obj(6,U8).value:execute(0x200472)
   reg(6,load(0x7008,4));reg(7,0x6be0);reg(8,0x20137c)
   for k in range(100000):
    pc=get(8)
@@ -143,6 +156,8 @@ for case in range(24):
      if command==65535:store(0x6ad8,(parameter+16*service)&255,1)
     else:round_sounds.append(command)
     reg(8,caller);reg(7,sp+4);continue # requests plus query-byte metadata, not synthesis
+   if control_mode and pc==0x2501d1:
+    tee_sounds.append((2,get(0)&65535,get(1)&255));sp=get(7);reg(8,load(sp,4));reg(7,sp+4);continue
    if pc==0x2501ba:
     sounds[get(0)&255]+=1;sp=get(7);reg(8,load(sp,4));reg(7,sp+4);continue
    step(0)
@@ -242,6 +257,22 @@ for case in range(24):
     if cb==0x20ad1a:assert (club.maximum,club.minimum)==(load(node+22,1),load(node+23,1))
     if cb==0x20af8a:assert (markers.step,markers.limit)==(load(node+22,1),load(node+23,2))
     if cb==0x20c775:assert (hint.repeat,hint.last,hint.pending,hint.changed)==tuple(load(node+22+j,1) for j in range(4))
+  if control_mode and open_obj(5,U8).value==2:
+   cam=control_obj(0,CameraState)
+   assert (cam.saved_x,cam.saved_y)==(load(0x4417,2),load(0x4419,2)),(case,tick,'camera saved')
+   assert list(control_obj(4,U8*2))==[load(0x8032,1),load(0x8034,1)]
+   assert list(control_obj(5,U8*2))==[load(0x8033,1),load(0x8035,1)]
+   if control_age>=124:
+    assert result==0 and control_obj(1,U8).value==1 and control_obj(2,U8).value==0
+    assert load(0x413b,1)==0 and load(0x413c,4)==0x204786 and load(0x4140,4)==0x20485a
+    execute(0x202bce);execute(0x201c25);execute(0x20054f)
+    if load(0x400d,1)&80==80:execute(0x20067c);execute(0x200aa6)
+    store(0x400d,load(0x400d,1)&63,1)
+    assert app.bridge_aim_drain_head()==0
+    compare_cursor((case,"control next-head only"),True);I.compare(p)
+    assert bytes(maps)==data(0x9000,4096) and bytes(tiles)==data(0xa000,8192)
+    head_drains+=1
+    courses_seen.add(values[52]);boundaries[5]=boundaries.get(5,0)+1;break
   if result:
    boundary=shot_values[1] if shot_values[0] else tee_values[1] if tee_values[0] else -values[69]
    boundaries[boundary]=boundaries.get(boundary,0)+1
@@ -264,8 +295,8 @@ for case in range(24):
      assert bytes(controls)==data(0x40bf,16) and rng[0]==load(0x400e,1)
      head_drains+=1
    break
-  assert tick<1100
+  assert tick<1300
  count+=1
  if count%12==0:print("FLOW_PROGRESS",count,updates,file=sys.stderr,flush=True)
-assert courses_seen=={0,1,2} and boundaries=={expected_boundary:21,-2:3},(courses_seen,boundaries)
-print(json.dumps({'flows':count,'updates':updates,'separate_head_drains':head_drains,'courses':sorted(courses_seen),'boundaries':boundaries,'scope':('complete native selector through genuine scene children and2098af viewport opening; next2098ee is an explicit boundary, no swing' if open_mode else 'complete native selector through real209751 setup and209e3a; exact209830 next dispatch remains unconverted; no aiming input or swing' if aim_mode else 'complete native selector through first shot preparation and real first-tee banner, nested tasks, animated palettes and raster registration; stops at209751 before unconverted scene setup; raster row latch has independent original oracle, no playable shot or audio synthesis')}))
+assert courses_seen=={0,1,2} and boundaries=={5 if control_mode else expected_boundary:21,-2:3},(courses_seen,boundaries)
+print(json.dumps({'flows':count,'updates':updates,'separate_head_drains':head_drains,'courses':sorted(courses_seen),'boundaries':{('live control test window' if control_mode and k==5 else k):v for k,v in boundaries.items()},'scope':('native ready/camera/club input and main-loop scroll;124 authored live updates after opening, no fire or overlay execution' if control_mode else 'complete native selector through genuine scene children and2098af viewport opening; next2098ee is an explicit boundary, no swing' if open_mode else 'complete native selector through real209751 setup and209e3a; exact209830 next dispatch remains unconverted; no aiming input or swing' if aim_mode else 'complete native selector through first shot preparation and real first-tee banner, nested tasks, animated palettes and raster registration; stops at209751 before unconverted scene setup; raster row latch has independent original oracle, no playable shot or audio synthesis')}))

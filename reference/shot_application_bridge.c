@@ -9,7 +9,13 @@
 #include "shot_aim_application.c"
 #ifdef NTM_SHOT_BRIDGE_OPEN
 #include "shot_open_application.c"
+#ifdef NTM_SHOT_BRIDGE_CONTROL
+#include "shot_control_application.c"
+static ntm_shot_control_application control_application;
+#define open_application (control_application.base)
+#else
 static ntm_shot_open_application open_application;
+#endif
 #define aim_application (open_application.base)
 #else
 static ntm_shot_aim_application aim_application;
@@ -47,6 +53,10 @@ static uint32_t callback(ntm_task_callback c){
 #ifdef NTM_SHOT_BRIDGE_AIM
  if(c==aim_setup_boundary)return 0x209830;
 #ifdef NTM_SHOT_BRIDGE_OPEN
+#ifdef NTM_SHOT_BRIDGE_CONTROL
+ if(c==control_delay)return 0x2098ee;
+ if(c==control_ready)return 0x2098ff;
+#endif
  if(c==open_scene_entry)return 0x209830;
  if(c==open_wait)return 0x20989e;
  if(c==open_visible_delay)return 0x2098ee;

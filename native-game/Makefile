@@ -338,3 +338,23 @@ shot-club-sanitize: | $(BUILD)
 shot-club-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_CLUB) -o $(BUILD)/test-shot-club-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-shot-club-68020
+
+SHOT_READY=shot_ready.c test_shot_ready.c
+SHOT_CAMERA=shot_camera.c shot_markers.c shot_math.c tee_objects.c game_services.c task_allocation.c task_lifecycle.c course_choice.c input_state.c test_shot_camera.c
+CONTROL_APPLICATION=$(filter-out test_shot_open_application.c,$(OPEN_APPLICATION)) shot_ready.c shot_camera.c shot_control_application.c test_shot_control_application.c
+.PHONY: shot-ready shot-camera shot-control shot-control-sanitize shot-control-m68020
+shot-ready: | $(BUILD)
+	$(CC) $(FLAGS) $(SHOT_READY) -o $(BUILD)/test-shot-ready
+	$(BUILD)/test-shot-ready
+shot-camera: | $(BUILD)
+	$(CC) $(FLAGS) $(SHOT_CAMERA) -o $(BUILD)/test-shot-camera
+	$(BUILD)/test-shot-camera
+shot-control: | $(BUILD)
+	$(CC) $(FLAGS) $(CONTROL_APPLICATION) -o $(BUILD)/test-shot-control
+	$(BUILD)/test-shot-control
+shot-control-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(CONTROL_APPLICATION) -o $(BUILD)/test-shot-control-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-control-sanitize
+shot-control-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(CONTROL_APPLICATION) -o $(BUILD)/test-shot-control-m68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-control-m68020

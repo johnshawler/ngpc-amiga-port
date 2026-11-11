@@ -24,6 +24,9 @@ typedef struct {
     /* Optional real outer owner, scheduled before selector parent. NULL keeps
      * the selector-only lifecycle, including its detached result receiver. */
     ntm_task_callback outer_callback;
+    /* Optional original main-loop services after drawing head, before tasks.
+     * Return NTM_TASK_BOUNDARY for a partial-update unsupported boundary. */
+    int (*pre_task)(void *);void *pre_task_context;
 } ntm_course_driver;
 /* Caller zero-initializes the driver, supplies all backing states/resources,
  * and initializes context controls/selection/gate/sound plus parent globals and
@@ -35,7 +38,8 @@ int ntm_course_driver_start(ntm_course_driver *driver);
 int ntm_course_driver_start_intro(ntm_course_driver *driver,const uint8_t window[256]);
 /* input -> service head -> old drawing queues -> ordered tasks -> service tail.
  * New drawing requests remain pending until the NEXT update. Return0 active,
- * 1 bounded run finished,-1 invalid/error. With outer_callback, parent finish
+ * 1 bounded run finished,-1 invalid/error. A partial-update NTM_TASK_BOUNDARY
+ * does not execute remaining callbacks/tail or increment updates. With outer_callback, parent finish
  * continues until that callback or a child clears running at a boundary. A callback error leaves the cursor at the
  * failing task; caller must resolve it, not blindly retry a whole update. */
 int ntm_course_driver_update(ntm_course_driver *driver,uint8_t buttons);

@@ -34,6 +34,7 @@ int ntm_task_dispatch_one(ntm_task_context *context)
     if(!context || !context->current || !context->current->callback)return -1;
     context->published=context->current;
     outcome=context->current->callback(context,context->current);
+    if(outcome==NTM_TASK_BOUNDARY)return outcome;
     if(outcome<0 || !context->current || !context->current->next)return -1;
     context->current=context->current->next;
     return outcome;
