@@ -1,9 +1,14 @@
 # Next native gameplay-flow boundary
 
+The first scenery prefix described here is now implemented and tested in
+[COURSE_INTRO.md](COURSE_INTRO.md). This document retains the original boundary
+research; title animation, round-record and tee-shot setup remain future work.
+
 Read-only original execution identifies the sequence after course acceptance:
 course scenery and title, tournament title, round-record screen, then tee-shot
-setup. The current Amiga frontend ends at selection. None of the later screens
-are implied to be implemented by a fast selector.
+setup. The preserved selector-only target ends at selection; the separate intro target
+continues to course scenery. A fast selector does not imply later game stages
+are implemented.
 
 ## Bounded next conversion
 

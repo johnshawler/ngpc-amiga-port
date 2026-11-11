@@ -64,3 +64,5 @@ supplied separately. `rom/` and `*.rom` are git-ignored.
 ## Native recovery work
 
 The independent recovery implementation is documented in [native-renderer](native-renderer/README.md) and [native-game](native-game/README.md). The latter now includes verified native background/palette initialization and an input-driven course-selector task loop. The [bounded Amiga selector frontend](native-renderer/amiga/selector_README.md) now connects native cursor animation and hardware input to an actual display. It is a silent selector demonstration, not a playable or full-speed golf game. Commercial assets remain excluded.
+
+A separate [native course-introduction target](native-game/COURSE_INTRO.md) continues hardware-input selection into the original USA, Germany and Japan scenery. Title animation and playable golf remain unfinished.

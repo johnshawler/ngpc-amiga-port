@@ -152,3 +152,16 @@ cursor-sanitize: | $(BUILD)
 cursor-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(CURSOR) -o $(BUILD)/test-cursor-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-cursor-68020
+
+INTRO=input_state.c course_intro.c course_palette.c course_screen.c game_services.c task_allocation.c task_lifecycle.c course_choice.c test_course_intro.c
+.PHONY: intro intro-sanitize intro-m68020
+intro: | $(BUILD)
+	$(CC) $(FLAGS) $(INTRO) -o $(BUILD)/test-intro
+	$(BUILD)/test-intro
+intro-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(INTRO) -o $(BUILD)/test-intro-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-intro-sanitize
+intro-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c course_intro.c -o $(BUILD)/intro-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(INTRO) -o $(BUILD)/test-intro-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-intro-68020

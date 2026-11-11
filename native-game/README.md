@@ -119,6 +119,7 @@ The subsequent [cursor consumer](COURSE_CURSOR.md) and bounded
 [Amiga selector frontend](../native-renderer/amiga/selector_README.md) add
 interactive display. Audio synthesis and subsequent golf gameplay remain absent.
 
-The next original-game boundary after acceptance is documented in
-[POST_SELECTOR_PLAN.md](POST_SELECTOR_PLAN.md): course introduction, then the
-round-record and tee-shot setup tasks. These later stages are not yet converted.
+The [course-introduction scenery prefix](COURSE_INTRO.md) now continues from
+actual selector acceptance through the original scheduled owner and child.
+[POST_SELECTOR_PLAN.md](POST_SELECTOR_PLAN.md) records the remaining title,
+round-record and tee-shot boundaries. They are not yet converted.

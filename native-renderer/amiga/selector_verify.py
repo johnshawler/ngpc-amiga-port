@@ -76,9 +76,9 @@ def palette_from_cartridge(rom, completed):
     return bytes(palette)
 
 
-def verify(capture,chip,source_palette):
+def verify(capture,chip,source_palette,marker_bytes=b'NSEL0001'):
     ram=chip.read_bytes();assert len(ram)==2097152
-    marker=ram.find(b'NSEL0001');assert marker>=0 and ram.find(b'NSEL0001',marker+1)<0
+    marker=ram.find(marker_bytes);assert marker>=0 and ram.find(marker_bytes,marker+1)<0
     w=struct.unpack_from('>48I',ram,marker)
     assert w[2]==0x52454144 and w[3]==marker and w[12]==0
     assert marker+170000<=len(ram) and marker+256<=w[4]<=marker+256+81920

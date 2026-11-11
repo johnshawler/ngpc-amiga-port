@@ -1,5 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
 #include "course_screen.h"
+#ifdef NTM_SCREEN_PRIVATE_ASSETS
+/* Optional target backend. Caller guarantees the borrowed asset spans never
+ * alias tile/map destinations. This does not change validation or queue order. */
+extern void ntm_course_screen_copy_private(void *dst,const void *src,unsigned bytes);
+#endif
 static int screen_producer_valid(const ntm_course_screen *s,uint16_t selection,const ntm_screen_asset assets[3])
 {
     return s && assets && selection<3 && s->stamp_bytes<=256 && !(s->stamp_bytes&7);
@@ -64,10 +69,17 @@ static int screen_stamp_valid(const ntm_screen_stamp *s)
 }
 int ntm_course_screen_stamp(const ntm_screen_stamp *s,uint8_t tiles[8192],uint8_t maps[4096])
 {
-    size_t p;unsigned n,i,j,y,rows,offset,v;
+    size_t p;unsigned n,i,y,rows,offset,v;
+#ifndef NTM_SCREEN_PRIVATE_ASSETS
+    unsigned j;
+#endif
     if(!tiles || !maps || !screen_stamp_valid(s))return -1;
     n=screen_word(s->asset.data);
+#ifdef NTM_SCREEN_PRIVATE_ASSETS
+    for(i=0;i<n;i++)ntm_course_screen_copy_private(tiles+16*((s->tile&511u)+i),s->asset.tiles+screen_word(s->asset.data+6+2*i),16);
+#else
     for(i=0;i<n;i++)for(j=0;j<16;j++)tiles[16*((s->tile&511u)+i)+j]=s->asset.tiles[screen_word(s->asset.data+6+2*i)+j];
+#endif
     p=6+2*n;rows=s->asset.data[p++]&127;
     for(y=0;y<rows;y++) {
         offset=s->offset+64*y;

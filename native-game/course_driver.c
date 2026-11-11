@@ -55,6 +55,11 @@ int ntm_course_driver_start(ntm_course_driver *d)
     n=d->nodes;
     n[0].next=n+1;n[0].previous=n+1;n[0].priority=0;
     n[1].next=n;n[1].previous=n;n[1].owner=n+4;n[1].priority=1;n[1].callback=driver_initialize;
+    if(d->outer_callback) {
+        n[0].next=n+4;n[4].previous=n;n[4].next=n+1;
+        n[4].priority=1;n[4].callback=d->outer_callback;n[4].result=249;
+        n[1].previous=n+4;n[1].priority=2;
+    }
     n[2].next=n+3;n[3].next=0;d->context.free_head=n+2;d->context.current=n+1;
     d->parent.wait_callback=driver_wait;d->parent.cancel_delay_callback=driver_cancel;d->parent.accept_delay_callback=driver_accept;
     d->parent.random_delay_callback=driver_random;d->parent.random_cycle_callback=driver_cycle;d->parent.fade_callback=driver_fade;
@@ -74,7 +79,7 @@ int ntm_course_driver_update(ntm_course_driver *d,uint8_t buttons)
     }
     if(d->service_tail(d->service_context)<0)return -1;
     d->updates++;
-    if(d->parent.phase==NTM_PARENT_DONE){d->running=0;return 1;}
+    if(!d->running || (!d->outer_callback && d->parent.phase==NTM_PARENT_DONE)){d->running=0;return 1;}
     return 0;
 }
 

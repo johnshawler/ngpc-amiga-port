@@ -5,6 +5,13 @@
 #include "selector_frontend.h"
 #include "selector_memory.h"
 #include "selector_assets.inc"
+#ifdef NTM_COURSE_INTRO_TARGET
+#include "../../native-game/course_intro_application.h"
+#include "intro_assets.inc"
+static ntm_course_intro_application continuation;
+static ntm_course_intro_resources courses[3];
+#define app continuation.selector
+#endif
 #ifdef SELECTOR_PLANAR_CACHE
 #include "selector_planar_cache.h"
 #include "selector_planar.inc"
@@ -13,10 +20,11 @@ static unsigned planar_hint;
 #endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 #define CIA(off) (*(volatile uint8_t *)(0xbfd000u+(off)))
-#define REPORT_WORDS 48
 #define BITMAP_BYTES 81920
 #define COPPER_WORDS 1152
+#ifndef NTM_COURSE_INTRO_TARGET
 static ntm_course_application app;
+#endif
 static ntm_course_resources resources;
 static ntm_screen_asset assets[5];
 static ntm_palette_job jobs[3];
@@ -54,7 +62,12 @@ static void pump(void)
     last_tick=now;if(elapsed>report[16])report[16]=elapsed;
     due=selector_due(&pace,elapsed,sample);
     while(due-- && app.driver.running){
-        if(ntm_course_application_update(&app,sample)<0){report[2]=0x45525221;for(;;){}}
+#ifdef NTM_COURSE_INTRO_TARGET
+        if(ntm_course_intro_application_update(&continuation,sample)<0)
+#else
+        if(ntm_course_application_update(&app,sample)<0)
+#endif
+        {report[2]=0x45525221;for(;;){}}
         if(app.driver.parent.phase==NTM_PARENT_RANDOM_DELAY)report[38]++;
     }
     report[7]=app.driver.updates;report[8]=app.driver.context.selection;
@@ -62,6 +75,13 @@ static void pump(void)
     report[11]=sample;report[12]=pace.dropped;report[17]++;
     report[34]=now;report[35]=pace.updates;report[36]=pace.phase;
     report[37]=app.driver.parent.phase;report[39]=random_cursor;
+#ifdef NTM_COURSE_INTRO_TARGET
+    report[48]=continuation.boundary;report[49]=continuation.owner.phase;
+    report[50]=continuation.intro.phase;report[51]=app.driver.parent.mapped_course;
+    report[52]=continuation.selector_exit_update;report[53]=continuation.intro_start_update;
+    report[54]=continuation.first_visible_update;report[55]=continuation.records.count[0];
+    report[56]=continuation.records.active[0];
+#endif
 }
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=(uint16_t)reg;*(*c)++=(uint16_t)value;}
 static unsigned copper(unsigned index)
@@ -119,12 +139,23 @@ void selector_main(uint8_t *block)
     int cached=-1;
     uint8_t row[160],dirty[152];nr_bitmap target={compact,sizeof compact,160,152,20};
     report=(volatile uint32_t *)block;
-    report[0]=0x4e53454c;report[1]=0x30303031;report[3]=(unsigned)block;
+#ifdef NTM_COURSE_INTRO_TARGET
+    report[0]=0x4e494e54;
+#else
+    report[0]=0x4e53454c;
+#endif
+    report[1]=0x30303031;report[3]=(unsigned)block;
     bitmaps[0]=block+256;bitmaps[1]=bitmaps[0]+BITMAP_BYTES;
     coppers[0]=(uint16_t *)(bitmaps[1]+BITMAP_BYTES);coppers[1]=coppers[0]+COPPER_WORDS;
     selector_initialize(&app);selector_resources(&resources,assets,jobs,&random_cursor);
     nr_scene_cache_init(&composition);
-    if(ntm_course_application_start(&app,&resources)<0){report[2]=0x45525221;return;}
+#ifdef NTM_COURSE_INTRO_TARGET
+    intro_resources(courses);
+    if(ntm_course_intro_application_start(&continuation,&resources,courses)<0)
+#else
+    if(ntm_course_application_start(&app,&resources)<0)
+#endif
+    {report[2]=0x45525221;return;}
     REG(0x09a)=0x7fff;REG(0x09c)=0x7fff;REG(0x096)=0x7fff;
     /* CIA B cascaded timers; this takeover owns them until emulator reset. */
     CIA(0xe00)=0;CIA(0xf00)=0;CIA(0xd00)=0x7f;
