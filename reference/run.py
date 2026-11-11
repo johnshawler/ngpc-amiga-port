@@ -26,6 +26,17 @@ def read_inputs(path):
         result[int(frame)] = sum(1 << BUTTONS[b] for b in set(buttons))
     return result
 
+def ppm565(pixels, width, height, byteorder):
+    """Encode private RGB565 pixels as portable RGB PPM without image libraries."""
+    if width < 1 or height < 1 or len(pixels) != width * height * 2:
+        raise ValueError('RGB565 dimensions do not match byte count')
+    rgb = bytearray()
+    for offset in range(0, len(pixels), 2):
+        value = int.from_bytes(pixels[offset:offset+2], byteorder)
+        r, g, b = value >> 11, (value >> 5) & 63, value & 31
+        rgb.extend(((r << 3) | (r >> 2), (g << 2) | (g >> 4), (b << 3) | (b >> 2)))
+    return ('P6\n%d %d\n255\n' % (width, height)).encode() + rgb
+
 class Info(C.Structure):
     _fields_ = [('name', C.c_char_p), ('version', C.c_char_p), ('extensions', C.c_char_p), ('fullpath', C.c_bool), ('extract', C.c_bool)]
 class Game(C.Structure):
@@ -43,6 +54,8 @@ def main():
     p.add_argument('--rom', type=Path)
     p.add_argument('--core', type=Path, default=ROOT / 'build/mednafen_ngp_libretro.so')
     p.add_argument('--snapshot-dir', type=Path, help='Private per-frame CPU/RAM/GPU captures; requires instrumented core')
+    p.add_argument('--capture-dir', type=Path, help='Private RGB PPM screenshots; never publish game assets')
+    p.add_argument('--capture-every', type=int, default=60)
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--frames', type=int, default=120)
     p.add_argument('--inputs', type=Path, help='JSON frame -> NGPC button list; absent frames release all buttons')
@@ -50,6 +63,8 @@ def main():
     p.add_argument('--state-out', type=Path)
     p.add_argument('--replay-check', type=int, default=0, help='Restore final state and compare this many additional frames')
     args = p.parse_args()
+    if args.capture_every < 1:
+        p.error('Capture interval must be positive')
     if args.frames < 0 or args.replay_check < 0:
         p.error('Frame counts must be nonnegative')
     # Preloading before Python starts ensures core time() resolves to our clock.
@@ -172,6 +187,13 @@ def main():
                 core.retro_run()
                 if callback_errors or pixels is None:
                     raise RuntimeError(callback_errors or 'No video frame')
+                if args.capture_dir and n % args.capture_every == 0:
+                    args.capture_dir.mkdir(parents=True, exist_ok=True)
+                    blob = ppm565(pixels, width, height, sys.byteorder)
+                    path = args.capture_dir / ('frame-%06d.ppm' % n)
+                    if path.exists() and path.read_bytes() != blob:
+                        raise RuntimeError('Existing screenshot differs')
+                    path.write_bytes(blob)
                 extra = {}
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
