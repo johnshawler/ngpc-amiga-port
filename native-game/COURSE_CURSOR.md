@@ -8,8 +8,9 @@ complete golf game.
 clipping, horizontal/vertical flips, hide/pause/restart, forced tile refresh,
 queue-full dropping, removal, and double-buffered sprite realization. Resources
 are caller-resolved, bounds-checked spans; no original CPU instructions execute.
-The supported object is the single registered course cursor, with one component
-per frame and color sprites. Unsupported raster/multiplex and collision modes
+The supported object is one registered course cursor or course-title object,
+with one component per frame and color sprites. The title extension and its
+verified stop-header behavior are documented in [COURSE_TITLE.md](COURSE_TITLE.md). Unsupported raster/multiplex and collision modes
 are rejected, rather than treated as implemented.
 
 The application preserves the original service ordering: palette, fill and stamp

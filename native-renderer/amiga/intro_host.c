@@ -1,4 +1,4 @@
-/* Input-injecting native selector-to-scenery emulator verifier host. GPL-2.0-or-later. */
+/* Input-injecting native selector/title/tournament emulator verifier host. GPL-2.0-or-later. */
 #define _POSIX_C_SOURCE 200809L
 #include <libretro.h>
 #include <stdio.h>
@@ -25,6 +25,18 @@ static void capture(const char *label){
 }
 static unsigned navigation, press_frame, first_report_frame;
 static unsigned accept_frame, first_scenery_report_frame, scenery_captured;
+static unsigned captured_update, skip_stage, skip_update;
+static void title_input(void){
+ if(strncmp(scenario,"skip",4))return;
+ if(skip_stage==0 && word(61)==1 && word(7)>=word(58)+8){
+  buttons=1u<<RETRO_DEVICE_ID_JOYPAD_B;skip_update=word(7);skip_stage=1;
+  printf("TITLE_SKIP input_frame=%u update=%u phase=%u\n",frame_number,word(7),word(61));
+ }else if(skip_stage==1 && word(7)>=skip_update+5){buttons=0;skip_stage=2;}
+ else if(skip_stage==2 && !strcmp(scenario,"skipboth") && word(61)==3 && word(7)>=word(59)+8){
+  buttons=1u<<RETRO_DEVICE_ID_JOYPAD_B;skip_update=word(7);skip_stage=3;
+  printf("TOURNAMENT_SKIP input_frame=%u update=%u phase=%u\n",frame_number,word(7),word(61));
+ }else if(skip_stage==3 && word(7)>=skip_update+5){buttons=0;skip_stage=4;}
+}
 static unsigned destinations[]={2,1,0,1,2,1,1};
 static unsigned navigation_count=6;
 static const char *const labels[]={"right","left","japan","return","repeat","return2","chosen"};
@@ -38,7 +50,12 @@ static void advance(void){
  if(!marker){for(unsigned n=4;n+192<chip_size;n+=4)if(!memcmp((const uint8_t *)chip+n,"NINT0001",8)){marker=n;break;}}
  if(!marker||word(2)!=0x52454144)return;
  unsigned present=word(13);if(present==last_present)stable_frames++;else stable_frames=0;last_present=present;
- if(accept_frame && word(54) && word(19)>=word(54) && ((const uint8_t *)chip)[word(27)+8]==160){
+ title_input();
+ if(accept_frame && stable_frames>=2 && captured_update!=word(19)){
+  char label[64];snprintf(label,sizeof label,"intro-%03u",word(19));capture(label);captured_update=word(19);
+  printf("PRESENTED_INTRO label=%s frame=%u snapshot_update=%u current_update=%u title_phase=%u live_title_phase=%u composition_ticks=%u\n",label,frame_number,word(19),word(7),word(62),word(61),word(14));
+ }
+ if(accept_frame && word(54) && word(19)>=word(54) && !word(62) && ((const uint8_t *)chip)[word(27)+8]==160){
   if(!first_scenery_report_frame)first_scenery_report_frame=frame_number;
   if(!scenery_captured && stable_frames>=2){
    capture("scenery");scenery_captured=1;
@@ -128,10 +145,10 @@ static void poll(void){}
 static int16_t input(unsigned p,unsigned d,unsigned i,unsigned b){(void)i;if(d!=RETRO_DEVICE_JOYPAD || p!=0)return 0;if(b==RETRO_DEVICE_ID_JOYPAD_MASK)return (int16_t)buttons;return b<16 && (buttons&(1u<<b))?1:0;}
 #define FN(ret,name,args) ret (*name)args=dlsym(lib,#name);if(!name){fprintf(stderr,"Missing %s\n",#name);return 2;}
 int main(int argc,char **argv){
- if(argc!=8){fprintf(stderr,"usage: host core adf system-dir frames screen.ppm chip.bin course0|course1|course2|cancel|random\n");return 2;}
+ if(argc!=8){fprintf(stderr,"usage: host core adf system-dir frames screen.ppm chip.bin course0|course1|course2|cancel|random|skip0|skip1|skip2|skipboth\n");return 2;}
  void *lib=dlopen(argv[1],RTLD_NOW);if(!lib){fprintf(stderr,"%s\n",dlerror());return 2;}directory=argv[3];screen_path=argv[5];chip_path=argv[6];scenario=argv[7];
- if(!strcmp(scenario,"course1")){destinations[6]=2;navigation_count=7;}
- else if(!strcmp(scenario,"course2")){destinations[6]=0;navigation_count=7;}
+ if(!strcmp(scenario,"course1") || !strcmp(scenario,"skip1")){destinations[6]=2;navigation_count=7;}
+ else if(!strcmp(scenario,"course2") || !strcmp(scenario,"skip2")){destinations[6]=0;navigation_count=7;}
  FN(void,retro_set_environment,(retro_environment_t));
  FN(void,retro_set_video_refresh,(retro_video_refresh_t));
  FN(void,retro_set_audio_sample,(retro_audio_sample_t));

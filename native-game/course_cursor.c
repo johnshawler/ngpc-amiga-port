@@ -33,7 +33,12 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
     bank=d->zero_flags[1]&1;
     if(d->zero_flags[8] && (c->byte30&0x1b))return -1;
     if(d->zero_flags[8] && !(c->flags&16)) {
-        if(!a || c->width!=16 || c->tag!=46 || (c->velocity!=0 && c->velocity!=4) || c->id || d->list[0]!=(uint16_t)(c->id+256u*c->second))return -1;
+        if(!a || c->id || d->list[0]!=(uint16_t)(c->id+256u*c->second))return -1;
+        if(c->tag==46) {
+            if(c->width!=16 || (c->velocity!=0 && c->velocity!=4))return -1;
+        }else if(c->tag==38) {
+            if((c->width!=20 && c->width!=24 && c->width!=28) || c->velocity)return -1;
+        }else return -1;
         anim=a->animations+c->velocity/4;
         if(!anim->data || !anim->frames || 4u*anim->frames>anim->size)return -1;
         frame=e->frame;delay=e->delay;old=c->flags;flags=old;status=c->byte30&127;changed=(*global&32)!=0;
@@ -43,13 +48,20 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
         if(!(old&64)) {
             flags&=(uint8_t)~2u;delay=(uint8_t)(delay-1u);
             if(!delay) {
-                unsigned f=anim->data[frame+1];if(f!=0 && f!=128)return -1;
-                changed=1;if(f&128){status|=32;frame=252;}
-                frame=(uint8_t)(frame+4);if(frame/4>=anim->frames)return -1;
-                delay=anim->data[frame];status|=128;
+                unsigned f=anim->data[frame+1];if(f!=0 && f!=128 && !(c->tag==38 && f==192))return -1;
+                changed=1;
+                /* Original200d4d stops on the current frame. It sets freeze
+                 * and stopped bits, leaving delay0 and frame unchanged. The
+                 * expiry still refreshes tiles, but does not set status128. */
+                if(f==192){flags|=66;status|=64;}
+                else {
+                    if(f&128){status|=32;frame=252;}
+                    frame=(uint8_t)(frame+4);if(frame/4>=anim->frames)return -1;
+                    delay=anim->data[frame];status|=128;
+                }
             }
         }
-        if(!anim->data[frame] || (anim->data[frame+1]!=0 && anim->data[frame+1]!=128))return -1;
+        if(!anim->data[frame] || (anim->data[frame+1]!=0 && anim->data[frame+1]!=128 && !(c->tag==38 && anim->data[frame+1]==192)))return -1;
         flags|=1;if(!(old&32))flags&=(uint8_t)~1u;
         component=cursor_word(anim->data+frame+2);
         if((size_t)component+4>anim->size || !(cursor_word(anim->data+component)&32768))return -1;

@@ -3,6 +3,7 @@
 #define NTM_COURSE_INTRO_APPLICATION_H
 #include "course_application.h"
 #include "course_intro.h"
+#include "course_title.h"
 enum {NTM_INTRO_BOUNDARY_NONE=0,NTM_INTRO_BOUNDARY_TITLE,
       NTM_INTRO_BOUNDARY_PRIOR_SELECTION,NTM_INTRO_BOUNDARY_SPECIAL_RECORD,
       NTM_INTRO_BOUNDARY_ROUND_RECORD};
@@ -16,11 +17,25 @@ typedef struct {
     const ntm_course_intro_resources *courses; /* Three private resource groups. */
     uint32_t selector_exit_update,intro_start_update,first_visible_update;
     uint8_t boundary;
+    /* Optional full title path; the original scenery-only entry stays bounded. */
+    const ntm_course_title_resources *title_resources;
+    const ntm_cursor_assets *title_objects;
+    ntm_course_title title;
+    ntm_course_title_context title_context;
+    ntm_course_cursor title_cursor;
+    uint16_t title_x;
+    int (*selector_drawing_head)(void *),(*selector_tail)(void *);
+    uint32_t title_start_update,tournament_start_update,title_complete_update,tournament_prepare_update;
 } ntm_course_intro_application;
 /* Preserve normal application initialization and service order. The real outer
  * task is inserted before the selector parent before its first traversal.
  * No restored save progression or title object is implied by default records. */
 int ntm_course_intro_application_start(ntm_course_intro_application *app,
     const ntm_course_resources *selector,const ntm_course_intro_resources courses[3]);
+/* Continue original title/tournament lifecycle, then stop at the real owner's
+ * unconverted round-record request. Default normal input/game mode are zero. */
+int ntm_course_intro_application_start_titles(ntm_course_intro_application *app,
+    const ntm_course_resources *selector,const ntm_course_intro_resources courses[3],
+    const ntm_course_title_resources titles[3],const ntm_cursor_assets objects[3]);
 int ntm_course_intro_application_update(ntm_course_intro_application *app,uint8_t buttons);
 #endif

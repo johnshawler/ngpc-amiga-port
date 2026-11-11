@@ -127,7 +127,8 @@ int nr_scene_row_cached(const nr_scene *s,unsigned y,uint8_t out[160],nr_scene_c
     unsigned i,depth;
     if(!s || !out || !c || !s->tiles || !s->maps || !s->sprites || !s->sprite_pal || y>=152)return -1;
     for(i=0;i<160;i++)out[i]=(uint8_t)(248+(s->outside&7));
-    if(y<s->window_y || y>=(unsigned)s->window_y+s->window_h)return 0;
+    /* Empty horizontal windows are outside-only, even with visible y. */
+    if(!s->window_w || s->window_x>=160 || y<s->window_y || y>=(unsigned)s->window_y+s->window_h)return 0;
     for(i=s->window_x;i<160 && i<(unsigned)s->window_x+s->window_w;i++)out[i]=(uint8_t)(240+(s->background&7));
     prepare_sprites(s,c);
     for(depth=1;depth<=3;depth++) {

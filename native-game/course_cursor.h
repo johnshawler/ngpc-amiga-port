@@ -14,7 +14,9 @@ typedef struct {
     uint8_t bank1[2][256],palettes[2][2][64];
     ntm_cursor_tile_job jobs[64];
 } ntm_course_cursor_engine;
-/* One active registered cursor only; normal/accept animation selectors0/4,
+/* One active registered object only; selector tag46/index16/animations0 or4,
+ * or course-title tag38/indices20,24,28/animation0. Title headers0xc0 stop on
+ * their current frame, set flags0x42/status0x40, and retain the zero delay.
  * single-component noncollision frames, color sprites. Supports signed offsets,
  * clipping, flips, hide/freeze/restart, forced tile refresh and removal.
  * Bank0 sprite arrays are display.pools: display reset and cursor share storage.

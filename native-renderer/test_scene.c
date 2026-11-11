@@ -133,6 +133,18 @@ int main(void)
     for(i=0;i<64;i++){sprites[i*4]=0;sprites[i*4+1]=0x18;sprites[i*4+2]=sprites[i*4+3]=0;}
     assert(nr_scene_row(&s,0,expected)==0);assert(nr_scene_row_reused(&s,0,cached,&memo)==0);
     assert(memcmp(cached,expected,160)==0);assert(memo.lengths[0]==758);
+    /* Empty/offscreen horizontal windows must be outside-only and must not
+     * consume stale sprite-cache state before a later visible frame. */
+    for(i=0;i<256;i++) {
+        unsigned rebuilds=cache.rebuilds;
+        s.window_x=(uint8_t)i;s.window_w=0;s.window_y=0;s.window_h=152;
+        sprites[2]=(uint8_t)(sprites[2]+1);y=i%152;
+        oracle(&s,y,expected);assert(nr_scene_row_cached(&s,y,cached,&cache)==0);
+        assert(!memcmp(cached,expected,160) && cache.rebuilds==rebuilds);
+        if(i>=160){s.window_w=255;oracle(&s,y,expected);assert(!nr_scene_row_cached(&s,y,cached,&cache));assert(!memcmp(cached,expected,160) && cache.rebuilds==rebuilds);}
+        s.window_x=0;s.window_w=160;oracle(&s,y,expected);
+        assert(!nr_scene_row_cached(&s,y,cached,&cache));assert(!memcmp(cached,expected,160));
+    }
     memset(actual,0xa5,sizeof actual);assert(nr_scene_row(&s,152,actual)==-1);
     assert(nr_scene_row_reused(&s,152,actual,&memo)==-1);
     assert(nr_scene_row_reused(&s,0,actual,NULL)==-1);

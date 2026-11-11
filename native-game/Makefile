@@ -165,3 +165,27 @@ intro-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c course_intro.c -o $(BUILD)/intro-68020.o
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(INTRO) -o $(BUILD)/test-intro-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-intro-68020
+
+TITLE_CURSOR=course_cursor.c game_services.c test_course_title_cursor.c
+.PHONY: title-cursor title-cursor-sanitize title-cursor-m68020
+title-cursor: | $(BUILD)
+	$(CC) $(FLAGS) $(TITLE_CURSOR) -o $(BUILD)/test-title-cursor
+	$(BUILD)/test-title-cursor
+title-cursor-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(TITLE_CURSOR) -o $(BUILD)/test-title-cursor-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-title-cursor-sanitize
+title-cursor-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(TITLE_CURSOR) -o $(BUILD)/test-title-cursor-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-title-cursor-68020
+
+TITLE = test_course_title.c course_title.c course_screen.c game_services.c task_allocation.c task_lifecycle.c course_choice.c input_state.c
+.PHONY: title title-sanitize title-m68020
+title: | $(BUILD)
+	$(CC) $(FLAGS) $(TITLE) -o $(BUILD)/test-title
+	$(BUILD)/test-title
+title-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(TITLE) -o $(BUILD)/test-title-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-title-sanitize
+title-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(TITLE) -o $(BUILD)/test-title-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-title-68020

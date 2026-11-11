@@ -7,6 +7,9 @@ static ntm_course_intro_application continuation;
 #define app (continuation.selector)
 #define d (app.driver)
 static unsigned sounds[3];static ntm_course_resources resources;
+static const ntm_course_title_resources *title_resources;
+static const ntm_cursor_assets *title_objects;
+void bridge_titles(const ntm_course_title_resources *r,const ntm_cursor_assets *o){title_resources=r;title_objects=o;}
 static uint32_t address(ntm_task *n){return n==&continuation.fallback?0x7140:n?0x7000u+64u*(unsigned)(n-d.nodes):0;}
 static uint32_t callback(ntm_task_callback c){
  if(c==owner_tick)return 0x203f31;
@@ -15,6 +18,11 @@ static uint32_t callback(ntm_task_callback c){
  if(c==intro_tick)return 0x2077d3;
  if(c==intro_visible)return 0x207809;
  if(c==intro_title)return 0x20781a;
+ if(c==title_tick)return 0x2078da;
+ if(c==tournament_delay)return 0x207959;
+ if(c==tournament_wait)return 0x207990;
+ if(c==title_cleanup)return 0x2079a7;
+ if(c==ntm_task_finish)return 0x20132b;
  if(c==driver_render)return 0x2095e3;
  if(c==driver_wait)return 0x2093b8;
  if(c==driver_cancel)return 0x2093ed;
@@ -41,14 +49,15 @@ int bridge_start(const ntm_course_initialization *init,const ntm_course_screen *
  resources.assets=assets;resources.palette_jobs=jobs;resources.cursor_descriptor=descriptor;resources.fade_in=fi;resources.fade_out=fo;resources.random=random;resources.random_cursor=random_cursor;resources.cursor=cursor;
  d.context.sound_request=sound;d.context.gate=(uint8_t)gate;
  d.parent.viewport[0]=80;d.parent.viewport[3]=152;
- return ntm_course_intro_application_start(&continuation,&resources,courses);
+ return title_resources?ntm_course_intro_application_start_titles(&continuation,&resources,courses,title_resources,title_objects):
+     ntm_course_intro_application_start(&continuation,&resources,courses);
 }
 int bridge_update(unsigned input){return ntm_course_intro_application_update(&continuation,(uint8_t)input);}
-void *bridge_pointer(unsigned n){switch(n){case 0:return &app.initialization;case 1:return &app.screen;case 2:return &app.display;case 3:return &app.palette;case 4:return app.controls;case 5:return app.tiles;case 6:return app.maps;case 7:return app.sprites;case 8:return app.sprite_palettes;case 9:return &app.cursor_engine;case 10:return &continuation.owner;case 11:return &continuation.records;case 12:return &continuation.intro;case 13:return &continuation.intro_context;case 14:return &continuation;default:return 0;}}
+void *bridge_pointer(unsigned n){switch(n){case 0:return &app.initialization;case 1:return &app.screen;case 2:return &app.display;case 3:return &app.palette;case 4:return app.controls;case 5:return app.tiles;case 6:return app.maps;case 7:return app.sprites;case 8:return app.sprite_palettes;case 9:return &app.cursor_engine;case 10:return &continuation.owner;case 11:return &continuation.records;case 12:return &continuation.intro;case 13:return &continuation.intro_context;case 14:return &continuation;case 15:return &continuation.title_cursor;case 16:return &continuation.title;case 17:return &continuation.title_context;default:return 0;}}
 void bridge_export(uint32_t *v){unsigned i;for(i=0;i<5;i++){
  ntm_task *t=d.nodes+i;*v++=callback(t->callback);*v++=address(t->previous);*v++=address(t->next);*v++=address(t->owner);*v++=t->priority;*v++=t->result;*v++=t->flags;*v++=t->substate;*v++=t->delay;}
  *v++=d.context.free_head?address(d.context.free_head):0xffffffff;*v++=address(d.context.current);*v++=address(d.context.published);
- *v++=d.context.selection;*v++=d.parent.global_word;*v++=d.parent.global_flags;*v++=d.parent.random_remaining;*v++=d.parent.mapped_course;
+ *v++=d.context.selection;*v++=continuation.title.phase?continuation.title_cursor.velocity:d.parent.global_word;*v++=continuation.title.phase?continuation.title_cursor.flags:d.parent.global_flags;*v++=d.parent.random_remaining;*v++=d.parent.mapped_course;
  for(i=0;i<4;i++)*v++=d.parent.viewport[i];
  *v++=d.parent.course_index;
  for(i=0;i<3;i++)*v++=d.parent.course_order[i];
@@ -56,7 +65,10 @@ void bridge_export(uint32_t *v){unsigned i;for(i=0;i<5;i++){
  *v++=d.running;
  *v++=continuation.owner.phase;*v++=continuation.intro.phase;
  *v++=continuation.intro.asset_group;
- *v++=continuation.intro.descriptor_next?(uint32_t)(continuation.intro.descriptor_next-continuation.courses[d.parent.mapped_course].descriptor):0;
+ *v++=continuation.title.phase?(uint32_t)(continuation.title.descriptor_next-continuation.courses[d.parent.mapped_course].descriptor):
+     continuation.intro.descriptor_next?(uint32_t)(continuation.intro.descriptor_next-continuation.courses[d.parent.mapped_course].descriptor):0;
  *v++=continuation.boundary;*v++=continuation.selector_exit_update;
  *v++=continuation.intro_start_update;*v++=continuation.first_visible_update;*v++=d.updates;
 }
+
+void bridge_title_export(uint32_t *v){*v++=continuation.title.phase;*v++=continuation.title_start_update;*v++=continuation.tournament_start_update;*v++=continuation.title_complete_update;*v++=continuation.title_x;}

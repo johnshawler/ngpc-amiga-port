@@ -3,7 +3,7 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT="$ROOT/build/native-intro"
 SCENARIO=${1:-course0}
-case "$SCENARIO" in course0|course1|course2|cancel|random);; *) echo 'usage: intro_run.sh [course0|course1|course2|cancel|random]' >&2; exit 2;; esac
+case "$SCENARIO" in course0|course1|course2|cancel|random|skip0|skip1|skip2|skipboth);; *) echo 'usage: intro_run.sh [course0|course1|course2|cancel|random|skip0|skip1|skip2|skipboth]' >&2; exit 2;; esac
 : "${PUAE_CORE:?Set PUAE_CORE to official libretro PUAE core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
 : "${KICKSTART:?Set KICKSTART to authorized local A1200 3.1 ROM}"

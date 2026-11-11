@@ -1,14 +1,17 @@
 # Next native gameplay-flow boundary
 
 The first scenery prefix described here is now implemented and tested in
-[COURSE_INTRO.md](COURSE_INTRO.md). This document retains the original boundary
-research; title animation, round-record and tee-shot setup remain future work.
+[COURSE_INTRO.md](COURSE_INTRO.md). The course-title object, tournament
+transition and cleanup are now converted
+and independently verified in [COURSE_TITLE.md](COURSE_TITLE.md). This document
+retains the original boundary research. Round-record and tee-shot setup remain
+future work.
 
 Read-only original execution identifies the sequence after course acceptance:
 course scenery and title, tournament title, round-record screen, then tee-shot
-setup. The preserved selector-only target ends at selection; the separate intro target
-continues to course scenery. A fast selector does not imply later game stages
-are implemented.
+setup. The preserved selector-only target ends at selection; the separate intro
+target continues through the title lifecycle and stops at the round-record
+request. A fast selector does not imply later game stages are implemented.
 
 ## Bounded next conversion
 

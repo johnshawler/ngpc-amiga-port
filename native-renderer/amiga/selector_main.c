@@ -10,6 +10,8 @@
 #include "intro_assets.inc"
 static ntm_course_intro_application continuation;
 static ntm_course_intro_resources courses[3];
+static ntm_course_title_resources titles[3];
+static ntm_cursor_assets title_objects[3];
 #define app continuation.selector
 #endif
 #ifdef SELECTOR_PLANAR_CACHE
@@ -37,6 +39,9 @@ static struct snapshot {
     nr_scene scene;
     uint8_t tiles[8192],maps[4096],sprites[256],sprite_pal[64],palette[512],scalars[16];
     uint32_t update,selection,invert,cache_index,lookup_ticks;
+#ifdef NTM_COURSE_INTRO_TARGET
+    uint32_t intro_metadata[16]; /* Immutable metadata for the shown snapshot. */
+#endif
 } snapshots[2];
 static volatile uint32_t *report;
 static uint8_t *bitmaps[2];
@@ -81,6 +86,9 @@ static void pump(void)
     report[52]=continuation.selector_exit_update;report[53]=continuation.intro_start_update;
     report[54]=continuation.first_visible_update;report[55]=continuation.records.count[0];
     report[56]=continuation.records.active[0];
+    report[58]=continuation.title_start_update;report[59]=continuation.tournament_start_update;
+    report[60]=continuation.title_complete_update;report[61]=continuation.title.phase;
+    report[63]=continuation.tournament_prepare_update;
 #endif
 }
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=(uint16_t)reg;*(*c)++=(uint16_t)value;}
@@ -114,6 +122,13 @@ static void snapshot(unsigned index)
     s->scalars[0]=n->scroll_x[0];s->scalars[1]=n->scroll_x[1];s->scalars[2]=n->scroll_y[0];s->scalars[3]=n->scroll_y[1];
     s->scalars[4]=n->sprite_x;s->scalars[5]=n->sprite_y;s->scalars[6]=n->window_x;s->scalars[7]=n->window_y;
     s->scalars[8]=n->window_w;s->scalars[9]=n->window_h;s->scalars[10]=n->swap;s->scalars[11]=n->background;s->scalars[12]=n->outside;
+#ifdef NTM_COURSE_INTRO_TARGET
+    {const ntm_course_cursor *c=&continuation.title_cursor;uint32_t *m=s->intro_metadata;
+     m[0]=continuation.title.phase;m[1]=continuation.intro.phase;
+     m[2]=app.cursor_engine.frame;m[3]=app.cursor_engine.delay;m[4]=continuation.title_x;m[5]=c->y;
+     m[6]=c->tile;m[7]=c->flags;m[8]=c->byte14;m[9]=c->byte15;m[10]=c->tag;m[11]=c->width;
+     m[12]=c->velocity;m[13]=c->byte30;m[14]=app.display.zero_flags[8];m[15]=app.display.zero_flags[10];}
+#endif
     report[18]=s->update;report[20]=s->selection;
 }
 static void present(unsigned index,unsigned clen,uint32_t start)
@@ -131,13 +146,19 @@ static void present(unsigned index,unsigned clen,uint32_t start)
     report[26]=(unsigned)s->palette;report[27]=(unsigned)s->scalars;report[28]=s->invert;
     report[32]=composed_rows;report[33]=reused_rows;
     report[46]=s->cache_index;report[47]=s->lookup_ticks;
+#ifdef NTM_COURSE_INTRO_TARGET
+    report[57]=(unsigned)s->intro_metadata;report[62]=s->intro_metadata[0];
+#endif
     report[2]=0x52454144;
 }
 void selector_main(uint8_t *block)
 {
     unsigned index=0,y,p,clen;uint32_t start;
     int cached=-1;
-    uint8_t row[160],dirty[152];nr_bitmap target={compact,sizeof compact,160,152,20};
+    uint8_t dirty[152];nr_bitmap target={compact,sizeof compact,160,152,20};
+#ifndef NTM_INTRO_PLANAR_WORDS
+    uint8_t row[160];
+#endif
     report=(volatile uint32_t *)block;
 #ifdef NTM_COURSE_INTRO_TARGET
     report[0]=0x4e494e54;
@@ -150,8 +171,8 @@ void selector_main(uint8_t *block)
     selector_initialize(&app);selector_resources(&resources,assets,jobs,&random_cursor);
     nr_scene_cache_init(&composition);
 #ifdef NTM_COURSE_INTRO_TARGET
-    intro_resources(courses);
-    if(ntm_course_intro_application_start(&continuation,&resources,courses)<0)
+    intro_resources(courses);intro_title_resources(titles,title_objects);
+    if(ntm_course_intro_application_start_titles(&continuation,&resources,courses,titles,title_objects)<0)
 #else
     if(ntm_course_application_start(&app,&resources)<0)
 #endif
@@ -191,7 +212,11 @@ void selector_main(uint8_t *block)
         for(y=0;y<152;y++){
             uint32_t row_start=ticks(),elapsed;
             if(dirty[y]){
+#ifdef NTM_INTRO_PLANAR_WORDS
+                if(nr_scene_row_planar_words(&snapshots[index].scene,y,&target,&composition)<0){report[2]=0x45525221;return;}
+#else
                 if(nr_scene_row_cached(&snapshots[index].scene,y,row,&composition)<0 || nr_store_scene_row_packed(&target,y,row)<0){report[2]=0x45525221;return;}
+#endif
                 for(p=0;p<8;p++)selector_span_copy(bitmaps[index]+p*10240+(y+52)*40+10,compact+p*3040+y*20,20);
                 composed_rows++;
             }else{

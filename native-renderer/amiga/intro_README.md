@@ -1,9 +1,10 @@
-# Native Amiga course-introduction scenery target
+# Native Amiga course-introduction target
 
-This separate target continues the actual interactive course selector into the
-first course-scenery screen for USA, Germany and Japan. It is a bounded, silent
-native conversion, not playable golf. The original selector-only target and
-its fifteen-entry exact planar cache remain separate.
+This separate target continues the interactive course selector through the real
+course-title object, tournament title, skip input and cleanup for USA, Germany
+and Japan. It stops at the outer owner's **round-record request**. It is a
+bounded, silent native conversion, not playable golf. The original selector-only
+target and its fifteen-entry exact planar cache remain separate.
 
 **Target:** PAL A1200, 68EC020, AGA, 2 MiB Chip RAM, zero Fast RAM. Like the
 selector target, this executable takes over display, interrupts and CIA B until
@@ -12,109 +13,131 @@ work. Physical hardware has not been tested.
 
 ## Behavior and boundaries
 
-Joystick port 2 uses the unchanged controls: left/right navigation, first fire
-for ordinary acceptance, second fire for cancel, and up plus first fire for the
-original modified/random path. Initial selection is USA. The test host supplies
-only external RetroPad input through PUAE's hardware-input callbacks; it does
-not script native phase changes or write task state into emulated memory.
+Joystick port 2 retains left/right navigation, first fire for acceptance, second
+fire for cancel, and up plus first fire for modified/random acceptance. Initial
+selection is USA. First fire also skips the currently active title or tournament
+wait through the original rising-edge input path. A held button is not repeated
+skip input. The test host supplies only external RetroPad input through PUAE's
+hardware-input callbacks. It never writes native task state or phase into RAM.
 
-The optional outer owner is linked into the real task ring before the selector
-parent. Parent exit writes the result and does not execute the owner again that
-tick. On the next logical update the owner increments the normal golfer record
-once, allocates the intro child, and that child runs later in the same traversal.
-The order remains input, palette head, existing fills/stamps, object head, tasks,
-palette tail and object tail. The empty object list after reset clears the old
-selector cursor through the ordinary deferred object path.
+The actual outer task runs before the selector parent. Selector exit does not
+rerun the owner that tick. On the following logical update the owner increments
+the normal golfer record once, allocates the intro child, and that child runs
+later in the same traversal. Service order remains input, palette head, old
+fills/stamps, object head, tasks, palette tail and object tail.
 
-The intro directly clears map 0, resets owned display state, queues the mapped
-course's two palette jobs and map-1 background, then opens the viewport at the
-original signed-delay boundary. It halts at the next unsupported title callback.
-The following title object/animation, tournament title, round-record screen and
-tee-shot routines are **not implemented**. Cancel stops at the prior-selection
-request rather than inventing that earlier screen. A special-record request is
-explicitly unsupported. The standalone target starts with normal golfer 0 in
-bank 0; it does not restore save progression.
+The introduction clears map 0, resets owned display state, queues the course
+palette/background, and opens the viewport at the original delay boundary.
+The next stage queues its title stamp and registers the real tag-38 object. The
+shared object engine executes its one-frame terminal animation, including the
+0xc0 completion/freeze semantics and deferred tile/sprite uploads. A separate
+native title record prevents stale selector aliases from replacing its graphics
+index, position or flags. Nothing substitutes a pre-rendered course-title image.
 
-See [core contracts and original comparison](../../native-game/COURSE_INTRO.md)
-for isolated and integrated state equivalence. No TLCS-900 interpreter runs in
-the Amiga executable.
+Expiry or first-fire skip resets the title display and queues the tournament
+stamp. Its short delay and subsequent wait preserve their original scheduling.
+Cleanup closes the viewport, resets owned display state, removes the child, and
+lets the owner request round-record on its next traversal. **Round-record and
+tee-shot routines remain unimplemented.** Cancel stops at the prior-selection
+request. The standalone target begins with normal golfer 0 in bank 0 and normal
+game/input mode; it does not restore save progression or linked-player state.
+The core's mode-2 and linked-input branches have separate synthetic/original tests.
 
-## Rendering and timing
+See [scenery contracts](../../native-game/COURSE_INTRO.md) and
+[title contracts and original comparisons](../../native-game/COURSE_TITLE.md).
+No TLCS-900 interpreter runs in this Amiga executable. The old scenery-only
+application entry remains available for its retained boundary oracle.
 
-The target shares the tested selector display frontend, snapshots, hardware
-joystick sampling and CIA cadence: 241 updates per eight nominal seconds,
-bounded to two due updates per poll with any loss counted explicitly. It does
-not alter the catch-up limit to conceal stalls. Full selector snapshots still
-use exact cache hits. Course scenery uses the general renderer, with exact-key
-cache misses asserted; no selector candidate is accepted for a new background.
+## Rendering and measured limits
 
-A private-source copy backend is enabled only by `NTM_SCREEN_PRIVATE_ASSETS`.
-It requires generated read-only source spans to be disjoint from tile/map
-arrays. Each already-validated 16-byte tile uses the tested bounded 68020 copy;
-validation, map writes, queue order and the default generic path are unchanged.
-Both branches pass host, ASan/UBSan, QEMU m68020, and original routine/pipeline
-comparisons. The same compile flag is used by the private oracle's fast-copy
-pass. The ordinary selector build does not enable it.
+Input and application updates retain the CIA cadence of 241 updates per eight
+nominal seconds, a two-update catch-up bound, and explicit dropped-update counts.
+The private-source copy backend still requires generated sources disjoint from
+destination tile/map arrays. Validation, queue ordering and the generic default
+path remain intact. All nine tested target flows have **zero dropped updates**.
 
-This optimization was required by measurement: the generic `-Os` tile loop
-recomputed source offsets for every byte. A large course background produced
-one dropped update and a 105.02 ms maximum input-poll gap. Compiling only that
-consumer at `-O2` still dropped one update at 102.46 ms. The opt-in copy path
-passes every tested flow with zero drops. Those rejected timing runs remain in
-ignored local build directories, not source.
+Selector snapshots retain the same exact-key planar cache and safe fallback.
+The intro target uses the existing general `nr_scene_row_planar_words` backend
+for cache misses, with only the scene-renderer translation unit built at `-O2`.
+All new scenes are confirmed misses of the selector cache. A generic cached-row
+optimization also returns the already-filled outside pixels for empty/offscreen
+horizontal windows. Scalar-oracle tests cover closed-to-open cache transitions.
 
-Coherent output is **not full-speed presentation**. All four accepted runs
-already reached the unsupported title boundary before the first scenery bitmap
-was presented. The logical viewport state itself is reached at the converted
-update; rendering deliberately presents an immutable earlier snapshot. No
-course-title animation is shown or implied. Short presses between polls can
-still be missed.
+The backend choice followed measurement. The former chunky/packed fallback
+could finish its first course composition only after the whole course-title
+wait had ended. Changing compiler optimization alone still omitted the title.
+Direct word-plane composition allows all three ordinary course-title pictures
+to be displayed, without pausing tasks, extending waits or injecting state.
 
-Measured with the verified PAL PUAE profile:
+**This is not full-speed presentation.** Rendering presents immutable earlier
+snapshots while logic continues. The ordinary runs omitted the separate scenery
+stage: their first actual course picture was the title. The modified/random run
+presented scenery, title and tournament as separate pictures. All ordinary titles
+were first shown after logic had already reached the tournament phase.
 
-| Flow | Accept to first verified scenery | First scenery composition | Maximum input-poll gap |
+| Flow | Accept to first verified title | First title composition | Maximum input-poll gap |
 | --- | ---: | ---: | ---: |
-| USA, mapped course 0 | 3.60 s | 2.303 s | 44.32 ms |
-| Germany, mapped course 1 | 3.56 s | 2.283 s | 48.21 ms |
-| Japan, mapped course 2 | 3.52 s | 2.263 s | 40.76 ms |
-| Modified/random acceptance | 5.62 s | 2.303 s | 42.12 ms |
-| Cancel | No scenery requested | Not applicable | 31.02 ms |
+| USA | 4.80 s | 2.584 s | 38.72 ms |
+| Germany | 4.84 s | 2.624 s | 42.18 ms |
+| Japan | 4.80 s | 2.604 s | 41.30 ms |
+| Modified/random | 7.08 s | 1.302 s | 40.63 ms |
 
-The accept-to-capture interval includes the original accept/random delay,
-rendering and a two-stable-frame capture guard. Seconds for that interval use
-nominal PAL 50 Hz; it is not first illuminated-pixel latency. Composition uses
-the emulated CIA clock. Later unchanged scenery frames use dirty-row reuse at
-about 0.381 seconds; that number is **not** initial scenery creation time.
-No physical-hardware or whole-game speed claim follows from these measurements.
+The random flow's first scenery composition was **2.484 s**, captured **5.76 s**
+after acceptance. Its shorter title composition reuses unchanged rows, so it is
+not a cold scene-creation measurement. First ordinary tournament compositions
+were 1.222, 1.342 and 1.282 seconds. Final unchanged closed frames take about
+0.400 seconds; that is not initial scenery/title creation time. No unchanged
+title redraw was observed, so no steady title presentation rate is claimed.
 
-## Exact target checks and memory
+Accept-to-capture values include the original accept/random delay, rendering,
+and a two-stable-frame capture guard, using nominal PAL 50 Hz. Composition times
+use the emulated CIA clock. These are not first illuminated-pixel latency or
+physical-hardware measurements. Short presses between input polls may be missed.
 
-Five hardware-input scenarios pass, with **46 captured snapshots** including
-mixed and repeated navigation, all three course outputs, first scenery and final
-boundary states. Every capture checks all 81,920 displayed bitplane bytes against
-an independent per-pixel/depth oracle, all 256 Copper colors in both AGA nibble
-banks, and every captured RGB pixel including borders. All 512 palette bytes
-are independently resolved from original cartridge jobs. Scenery tiles and map
-writes are independently decoded from the cartridge descriptors. Both sprite
-VRAM and sprite palettes are checked empty after reset. All five flows report
-zero logical update drops.
+Skip tests supply hardware fire while the **logical** title wait is active, log
+that phase/update, and verify that it falls from 60 updates to 9. Double-skip
+also reduces the tournament wait from 60 updates to 9. They do not prove that a
+press made after the user sees a delayed title will act on that same stage.
+Shortened stages can be omitted or shown after cleanup; presentation logs retain
+both snapshot and current logical phase rather than labeling these as timely.
 
-The final executable is **637,280 bytes**, with **635,883 ELF text bytes** and
-**70,264 BSS bytes**. The explicit display allocation remains 170,000 Chip bytes.
-Exec reports 1,279,456 free Chip bytes before that allocation and **1,109,456**
-after it. The 555,120-byte selector cache remains resident even after acceptance.
-This is headroom for the bounded slice, not proof that audio or the rest of the
-game fits. Overlay/reclaimable storage is not implemented.
+## Exact checks and memory
 
-After these shared-code changes, the separate selector-only target was rebuilt
-and all three accept/cancel/random hardware flows passed their unchanged
-pixel/palette/drop gates. Frozen assets and runs from selector baseline 396d724
-remain under the separate ignored baseline directory.
+Nine hardware-input scenarios cover ordinary acceptance for all three courses,
+random acceptance, cancel, title skip on all three courses, and double skip.
+There are **157 verified captures**, including mixed/repeated navigation and
+actual title/tournament/transition/boundary snapshots. Each checks all 81,920
+bitplane bytes, all 256 Copper colors in both AGA nibble banks, and every captured
+RGB pixel including borders. All 512 palette bytes are independently resolved
+from original cartridge jobs. Background/title/tournament writes and the real
+title shape, source tiles, sprite positions/attributes and sprite palettes are
+independently decoded from the cartridge, accounting for deferred head timing.
+The final viewport is closed and stale sprites are removed through normal services.
+
+Cartridge-free application tests add **24 real traversals** across three mappings,
+normal/random/cancel, title skip, double skip, held input, mode 2 and linked skip.
+The previous 12 scenery application flows remain. Both application sets pass
+host, ASan/UBSan and static QEMU m68020, with generic and private-copy paths.
+General direct-planar tests cover 131,072 synthetic tile rows. Scene tests retain
+the independent scalar oracle plus closed/offscreen-to-open cache transitions.
+
+The executable is **724,548 bytes**, with **722,533 ELF text bytes** and **70,792
+BSS bytes**. Its ordinary 880 KiB ADF fits without requiring an HD disk. The
+explicit display allocation remains 170,000 Chip bytes. Exec reports 1,191,760
+free Chip bytes before that allocation and **1,021,760** afterward. The
+555,120-byte selector cache stays resident. This is bounded-slice headroom, not
+proof that the remaining game or audio fits; reclaimable overlays are not implemented.
+
+After the shared changes, the separate selector-only target was rebuilt and all
+three accept/cancel/random hardware flows passed their retained pixel/palette/drop
+gates. Baseline selector and scenery artifacts remain in separate ignored local
+directories. No cartridge, firmware, generated assets, captures or private hashes
+are tracked.
 
 ## Reproduce privately
 
 Provide the authorized cartridge at `private-inputs/neo-turf-masters.ngc` and
-use the existing m68020 toolchain. Then:
+use the existing m68020 toolchain:
 
 ```sh
 export AMIGA_BIN=/path/to/vscode-amiga-debug/bin/linux
@@ -122,16 +145,17 @@ bash native-renderer/amiga/intro_build.sh
 export PUAE_CORE=/path/to/puae_libretro.so
 export LIBRETRO_INCLUDE=/path/to/libretro-common/include
 export KICKSTART=/path/to/authorized-A1200-3.1.rom
-for scenario in course0 course1 course2 random cancel; do
+for scenario in course0 course1 course2 random cancel skip0 skip1 skip2 skipboth; do
   bash native-renderer/amiga/intro_run.sh "$scenario"
 done
 bash native-renderer/amiga/intro_test.sh
 python3 -m unittest discover -s tests -p test_intro_frontend.py -v
+make -C native-renderer scene scene-sanitize scene-m68020 direct direct-sanitize direct-m68020
 ```
 
-The exporter resolves three bounded descriptor/background groups and six
-palette jobs, refusing output outside ignored `build/`. Assets, executable,
-ADF, report manifests, screenshots, RAM captures and firmware stay private in
-`build/native-intro`. No commercial assets or private-derived hashes are in
-tracked source. Public tests use only synthesized resources and require no
-cartridge or firmware.
+The exporter resolves 43 bounded spans: full course descriptors, scenery/title/
+tournament assets, title object animations/shapes/tiles and palette sources. It
+rejects malformed or unsupported headers, shapes, tile destinations and spans,
+and refuses output outside ignored `build/`. The verifier uses only capture names
+logged by the current run, excluding stale files left by earlier experiments.
+All generated artifacts remain private under `build/native-intro`.

@@ -4,8 +4,9 @@ This is the first bounded continuation after course selection, not a playable
 hole. `course_intro.c` converts the outer owner's accepted-result path, the
 normal golfer-record helper, and the scenery initializer through the first open
 viewport. `course_intro_application.c` integrates it with the existing selector.
-Title animation, tournament title, round record and tee-shot gameplay remain
-explicitly unconverted.
+The optional [title continuation](COURSE_TITLE.md) now handles the course title,
+tournament stamp and child cleanup. Round-record and tee-shot gameplay remain
+explicitly unconverted; the scenery-only API still stops at its original boundary.
 
 ## Contracts and order
 
@@ -129,8 +130,8 @@ All generated artifacts remain under ignored `build/course-intro-check`.
 Do not rebuild the reference core concurrently with reference runs.
 
 See the separate [intro target report](../native-renderer/amiga/intro_README.md)
-for stock PAL target display, capture, timing and pacing results. No success in
-this bounded slice means that title animation, round-record or tee-shot routines
-have been converted. The next title object uses a different tag and animation
-format, including flags unsupported by the selector cursor engine; do not reuse
-that engine without extending and verifying those dependencies.
+for stock PAL target display, capture, timing and pacing results. The scenery
+results above alone do not validate later stages. The separate
+[title continuation](COURSE_TITLE.md) extends and verifies the distinct title
+object format, tournament transition and cleanup. Round-record and tee-shot
+routines are still outside the converted boundary.
