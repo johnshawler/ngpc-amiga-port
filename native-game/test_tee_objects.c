@@ -137,5 +137,14 @@ int main(void)
     start(1);tail();saved_e=e;memcpy(saved_c,c,sizeof c);assert(!ntm_tee_objects_reset(&d,c));
     assert(!memcmp(&e,&saved_e,sizeof e));
     for(i=0;i<32;i++){saved_c[i].tag=65535;saved_c[i].id=(uint8_t)i;}assert(!memcmp(c,saved_c,sizeof c));
+    for(i=0;i<160;i++) {
+        int valid=i==60 || i==148 || i==152 || i==156;
+        start(0);c[11].tag=24;c[11].width=56;c[11].velocity=(uint16_t)i;c[11].tile=176;
+        if(valid){
+            other.animations[i/4]=other.animations[3];
+            assert(!ntm_tee_object_register(&d,c+11));tail();head();
+            other.animations[i/4].data=0;bad_tail();
+        }else assert(ntm_tee_object_register(&d,c+11)==-1);
+    }
     puts("PASS tee objects:65536 flags/delay pairs,131072 clipping positions,32-object order/removal,65 queue occupancies,component state,resource identity,malformed atomic rejection");return 0;
 }

@@ -7,7 +7,7 @@ U8=C.c_uint8;U16=C.c_uint16;U32=C.c_uint32
 class Display(C.Structure):_fields_=[('zero_flags',U8*16),('capacity',U8),('limit',U8),('object_ids',U8*32),('pools',(U8*256)*2),('zero_words',U16*2),('object_tags',U16*32),('list',U16*32),('reset_words',U32*2)]
 class Cursor(C.Structure):_fields_=[(n,U16) for n in ('tag','y','width','velocity','tile','link')]+[(n,U8) for n in ('id','second','byte14','byte15','flags','byte30')]
 class Animation(C.Structure):_fields_=[('data',C.POINTER(U8)),('size',C.c_size_t),('frames',U8)]
-class Assets(C.Structure):_fields_=[('animations',Animation*8),('shapes',C.POINTER(U8)),('tiles',C.POINTER(U8)),('shapes_size',C.c_size_t),('tiles_size',C.c_size_t)]
+class Assets(C.Structure):_fields_=[('animations',Animation*40),('shapes',C.POINTER(U8)),('tiles',C.POINTER(U8)),('shapes_size',C.c_size_t),('tiles_size',C.c_size_t)]
 class Job(C.Structure):_fields_=[('shapes',C.POINTER(U8)),('tiles',C.POINTER(U8)),('shapes_size',C.c_size_t),('tiles_size',C.c_size_t),('shape_offset',U16),('tile',U16),('count',U8)]
 class Engine(C.Structure):_fields_=[('frame',U8*32),('delay',U8*32),('list_dirty_high',U8),('uploaded_bank',U8),('bounds',(U16*4)*32),('bank1',(U8*256)*2),('palettes',((U8*64)*2)*2),('jobs',Job*64)]
 lib=C.CDLL(os.environ.get('NTM_TEE_OBJECT_LIBRARY',str(ROOT/'build/tee-object-check/native.so')))
@@ -50,7 +50,7 @@ for v in range(0,32,4):
   assert frame<256
  b=buf(data(a,max(end,frame)));animation_buffers.append(b);animations.append(Animation(b,len(b),frame//4))
 shape_buffer=buf(data(shape_root,shape_end));tile_buffer=buf(data(tile_root,tile_end))
-assets=Assets((Animation*8)(*animations),shape_buffer,tile_buffer,shape_end,tile_end)
+assets=Assets((Animation*40)(*animations),shape_buffer,tile_buffer,shape_end,tile_end)
 asset_refs=(C.POINTER(Assets)*32)(*[C.pointer(assets) for _ in range(32)])
 class Native(Model):
  def __init__(self):

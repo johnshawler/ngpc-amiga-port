@@ -11,6 +11,7 @@ static int display_valid(const ntm_display_reset_state *d)
 }
 static int tag_valid(const ntm_course_cursor *c)
 {
+    if(c->tag==24)return c->width==56 && (c->velocity==60 || c->velocity==148 || c->velocity==152 || c->velocity==156);
     if(c->width!=52)return 0;
     if(c->tag==29)return c->velocity==0;
     if(c->tag==30)return c->velocity==12;

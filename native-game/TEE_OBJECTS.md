@@ -12,7 +12,8 @@ claim for the stock PAL A1200 with 2 MiB Chip RAM and no Fast RAM.
 The tee setup registers tags 30, 29 and 31, with resource index 52 and initial
 animation offsets 12, 0 and 4. The optional badge is tag 32 with offset 16, 20,
 24 or 28; tag 31 can also use offset 8. The separate assets structure contains
-eight caller-resolved animation spans plus shape and tile spans. Each listed
+eight overview animation spans in a 40-slot array, plus shape and tile spans.
+The additional slots support the separately bounded first-tee extension below. Each listed
 object can use a different resource structure. Records and their frame, delay
 and bounds are indexed by original object IDs 0 through 31.
 
@@ -117,3 +118,25 @@ then the existing cursor/queue/title/prompt original oracles and the new edge
 oracle. The `NTM_CURSOR_LIBRARY` override keeps its freshly compiled library
 separate from other workers' native libraries. Neither check script rebuilds
 the original probe core.
+
+## First-tee banner extension
+
+The bounded service also accepts tag 24, graphics index 56, at precisely four
+animation offsets: 60 for registration, 152 for arrival, 148 for the first-tee
+portrait, and 156 for exit. Other offsets remain rejected. The borrowed animation
+array now has 40 slots so the original offset divided by four can address slot
+39 without remapping gameplay state. Unused slots do not imply supported art.
+
+A separate original oracle passes 80 flows and 6,400 tail/head updates, comparing
+all modeled non-stack RAM, object records, ordering, bounds, queued uploads, both
+sprite banks/palettes and graphics bytes. It exercises the four original
+animations, clipped/offscreen positions, flips, freezing, restart and removal.
+The prior 282-case/5,468-update overview oracle also passes. Synthetic registration
+tests check every offset below 160 and reject all but the four supported choices;
+missing borrowed animation data fails atomically. Host, sanitizer and m68020
+regressions pass. Run `bash tools/check-shot-objects.sh` for the private original
+comparison. The resource resolver is authored code, not embedded game art.
+
+This service does not by itself implement the banner's task lifecycle or its
+per-scanline plane-1 scrolling. Existing hardware evidence at checkpoint 299f589
+uses its original eight-slot asset layout and is not a new-build measurement.
