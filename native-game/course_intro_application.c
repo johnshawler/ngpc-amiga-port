@@ -52,6 +52,7 @@ static int owner_wait_round(ntm_task_context *c,ntm_task *t)
     ntm_course_intro_application *a=(ntm_course_intro_application *)c;
     if(!t->next)return -1;
     if(t->priority<t->next->priority)return 0;
+    if(a->tee_continuation)return a->tee_continuation(c,t);
     a->boundary=NTM_INTRO_BOUNDARY_TEE_SHOT;a->selector.driver.running=0;return 0;
 }
 static int title_tick(ntm_task_context *c,ntm_task *t)

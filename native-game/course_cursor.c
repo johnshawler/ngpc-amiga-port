@@ -77,7 +77,7 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
             unsigned attr,g=a->shapes[shape+2*i],xy=a->shapes[shape+2*i+1];uint8_t *p;
             uint16_t sx=(uint16_t)(bx+((old&8)?-8*(int)(xy&15)-8:8*(int)(xy&15)));
             uint16_t sy=(uint16_t)(by+((old&4)?-8*(int)(xy>>4)-8:8*(int)(xy>>4)));
-            if((old&32) || (uint16_t)(sx+7)>=166 || (uint16_t)(sy+7)>=158 || used>=d->capacity)continue;
+            if((old&32) || (uint16_t)(sx+7)>166 || (uint16_t)(sy+7)>158 || used>=d->capacity)continue;
             attr=(c->tile+i)|((c->byte15&3u)<<11)|((g&240u)<<9);attr^=(old&12u)<<12;if(c->byte14&128)attr^=0x2000;
             p=cursor_bank(e,d,bank,0)+4*used;p[0]=(uint8_t)attr;p[1]=(uint8_t)(attr>>8);p[2]=(uint8_t)sx;p[3]=(uint8_t)sy;
             e->palettes[bank][0][used]=(uint8_t)((g+c->byte14)&15);used++;

@@ -226,3 +226,22 @@ hole-prepare-sanitize: | $(BUILD)
 hole-prepare-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(HOLE_PREPARE) -o $(BUILD)/test-hole-prepare-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-hole-prepare-68020
+
+TEE_SETUP=tee_setup.c tee_graphics.c tee_objects.c course_title.c course_screen.c course_palette.c game_services.c task_allocation.c task_lifecycle.c course_choice.c input_state.c test_tee_setup.c
+TEE_APPLICATION=input_state.c course_choice.c task_lifecycle.c task_allocation.c random_byte.c viewport.c game_services.c course_parent.c course_screen.c course_driver.c course_palette.c course_initialization.c course_cursor.c course_application.c course_intro.c course_title.c round_record.c round_prepare.c course_intro_application.c tee_graphics.c tee_setup.c tee_objects.c hole_prepare.c tee_setup_application.c test_tee_setup_application.c ../native-renderer/scene_renderer.c ../native-renderer/tile_renderer.c
+.PHONY: tee-setup tee-setup-sanitize tee-setup-m68020
+tee-setup: | $(BUILD)
+	$(CC) $(FLAGS) $(TEE_SETUP) -o $(BUILD)/test-tee-setup
+	$(BUILD)/test-tee-setup
+	$(CC) $(FLAGS) $(TEE_APPLICATION) -o $(BUILD)/test-tee-application
+	$(BUILD)/test-tee-application
+tee-setup-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(TEE_SETUP) -o $(BUILD)/test-tee-setup-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-tee-setup-sanitize
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(TEE_APPLICATION) -o $(BUILD)/test-tee-application-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-tee-application-sanitize
+tee-setup-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(TEE_SETUP) -o $(BUILD)/test-tee-setup-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-tee-setup-68020
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(TEE_APPLICATION) -o $(BUILD)/test-tee-application-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-tee-application-68020

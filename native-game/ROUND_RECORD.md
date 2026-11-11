@@ -5,7 +5,9 @@
 `ntm_course_intro_application_start_round_record` continues the existing
 selector, scenery, course title and tournament lifecycle through this screen.
 The outer owner subsequently reaches an explicit tee-shot request at 0x203f79,
-before allocating 0x208753. Tee-shot setup and playable golf are not implemented.
+before allocating 0x208753. The separate opt-in [hole overview](TEE_SETUP.md)
+now continues that scheduler and its first child, stopping before 0x2096a4.
+Playable golf is not implemented.
 The existing scenery-only and title-only application starts keep their boundaries.
 
 ## Supported state and resources

@@ -125,3 +125,7 @@ The [title continuation](COURSE_TITLE.md) adds the course title, tournament stam
 input skip and child cleanup, stopping at the scheduled owner's round-record
 request. [POST_SELECTOR_PLAN.md](POST_SELECTOR_PLAN.md) records the remaining
 round-record and tee-shot boundaries. They are not yet converted.
+
+The separate opt-in [normal hole overview](TEE_SETUP.md) now continues the
+round boundary through real hole preparation and the first tee scheduler child.
+It stops before unconverted shot-scene child0x2096a4; this is not playable golf.

@@ -33,13 +33,19 @@ int main(void)
     start();c.flags=192;assert(!ntm_course_cursor_tail(&e,&c,&d,0,scroll,&flags,&a));assert(e.delay==4 && c.flags==66);
     assert(!ntm_course_cursor_head(&e,&d,tiles,sprites,palettes,&a));
     for(x=0;x<65536;x++) {
-        unsigned visible=(uint16_t)(x+7)<166;c.flags=64;
+        unsigned visible=(uint16_t)(x+7)<=166;c.flags=64;
         assert(!ntm_course_cursor_tail(&e,&c,&d,(uint16_t)x,scroll,&flags,&a));assert(d.zero_flags[13]==visible);
         assert(!ntm_course_cursor_head(&e,&d,tiles,sprites,palettes,&a));
         assert(sprites[0]==(visible?194:0) && sprites[2]==(visible?(uint8_t)x:0));
     }
-    c.flags=32;assert(!ntm_course_cursor_tail(&e,&c,&d,8,scroll,&flags,&a) && !d.zero_flags[13] && (c.flags&1));
+    for(x=0;x<65536;x++) {
+        unsigned visible=(uint16_t)(x+7)<=158;c.flags=64;c.y=(uint16_t)x;
+        assert(!ntm_course_cursor_tail(&e,&c,&d,8,scroll,&flags,&a));assert(d.zero_flags[13]==visible);
+        assert(!ntm_course_cursor_head(&e,&d,tiles,sprites,palettes,&a));
+        assert(sprites[0]==(visible?194:0) && sprites[3]==(visible?(uint8_t)x:0));
+    }
+    c.y=28;c.flags=32;assert(!ntm_course_cursor_tail(&e,&c,&d,8,scroll,&flags,&a) && !d.zero_flags[13] && (c.flags&1));
     c.byte30=1;assert(ntm_course_cursor_tail(&e,&c,&d,8,scroll,&flags,&a)==-1);c.byte30=0;
     d.zero_flags[1]|=8;assert(ntm_course_cursor_head(&e,&d,tiles,sprites,palettes,&a)==-1);
-    puts("PASS native course cursor:65536 clipping positions, deferred upload, animation, restart, pause, hide and removal");return 0;
+    puts("PASS native course cursor:65536 horizontal + 65536 vertical clipping positions, deferred upload, animation, restart, pause, hide and removal");return 0;
 }

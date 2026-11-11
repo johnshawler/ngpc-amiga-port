@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
 # Private original comparison; no cartridge bytes or captured assets embedded.
 from cursor_case_common import *
-import ctypes as C,hashlib
+import ctypes as C,hashlib,os
 U8=C.c_uint8;U16=C.c_uint16;U32=C.c_uint32
 class Display(C.Structure):_fields_=[('zero_flags',U8*16),('capacity',U8),('limit',U8),('object_ids',U8*32),('pools',(U8*256)*2),('zero_words',U16*2),('object_tags',U16*32),('list',U16*32),('reset_words',U32*2)]
 class Cursor(C.Structure):_fields_=[(n,U16) for n in ('tag','y','width','velocity','tile','link')]+[(n,U8) for n in ('id','second','byte14','byte15','flags','byte30')]
@@ -10,7 +10,7 @@ class Animation(C.Structure):_fields_=[('data',C.POINTER(U8)),('size',C.c_size_t
 class Assets(C.Structure):_fields_=[('animations',Animation*2),('shapes',C.POINTER(U8)),('tiles',C.POINTER(U8)),('shapes_size',C.c_size_t),('tiles_size',C.c_size_t)]
 class Job(C.Structure):_fields_=[('shape_offset',U16),('tile',U16),('count',U8)]
 class Engine(C.Structure):_fields_=[('frame',U8),('delay',U8),('list_dirty_high',U8),('uploaded_bank',U8),('bounds',U16*4),('bank1',(U8*256)*2),('palettes',((U8*64)*2)*2),('jobs',Job*64)]
-lib=C.CDLL(str(ROOT/'build/cursor-check/native_cursor_final.so'));lib.ntm_course_cursor_tail.argtypes=[C.POINTER(Engine),C.POINTER(Cursor),C.POINTER(Display),U16,C.POINTER(U16),C.POINTER(U8),C.POINTER(Assets)];lib.ntm_course_cursor_head.argtypes=[C.POINTER(Engine),C.POINTER(Display),C.POINTER(U8),C.POINTER(U8),C.POINTER(U8),C.POINTER(Assets)];lib.ntm_display_reset.argtypes=[C.POINTER(Display)]
+lib=C.CDLL(os.environ.get('NTM_CURSOR_LIBRARY',str(ROOT/'build/cursor-check/native_cursor_final.so')));lib.ntm_course_cursor_tail.argtypes=[C.POINTER(Engine),C.POINTER(Cursor),C.POINTER(Display),U16,C.POINTER(U16),C.POINTER(U8),C.POINTER(Assets)];lib.ntm_course_cursor_head.argtypes=[C.POINTER(Engine),C.POINTER(Display),C.POINTER(U8),C.POINTER(U8),C.POINTER(U8),C.POINTER(Assets)];lib.ntm_display_reset.argtypes=[C.POINTER(Display)]
 zero_addresses=[0x66bb,0x61ba,0x61b4,0x61b5,0x61b7,0x61b8,0x4d80,0x4d82,0x4d7d,0x4d7e,0x6182,0x619d,0x61a9,0x61a6,0x61a7,0x61a8]
 curmap=[('tag',0x453d,2),('y',0x4541,2),('width',0x4543,2),('velocity',0x4545,2),('tile',0x454d,2),('link',0x4557,2),('id',0x453b,1),('second',0x453c,1),('byte14',0x4549,1),('byte15',0x454a,1),('flags',0x454b,1),('byte30',0x4559,1)]
 def buf(b):return (U8*len(b)).from_buffer_copy(b)

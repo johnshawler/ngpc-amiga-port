@@ -1,0 +1,130 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later. Test-only original-state adapter. */
+#include <string.h>
+#include "course_driver.c"
+#include "course_application.c"
+#include "course_intro_application.c"
+#include "tee_setup_application.c"
+static ntm_tee_setup_application tee_application;
+#define continuation (tee_application.base)
+#define app (continuation.selector)
+#define d (app.driver)
+static unsigned sounds[3],round_sounds[4];static ntm_course_resources resources;
+static void round_sound(void *p,uint16_t n){(void)p;if(round_sounds[0]<3)round_sounds[1+round_sounds[0]++]=n;}
+static const ntm_course_title_resources *title_resources;
+static const ntm_round_record_resources *round_resources;
+void bridge_round(const ntm_round_record_resources *r){round_resources=r;}
+static const ntm_cursor_assets *title_objects;
+void bridge_titles(const ntm_course_title_resources *r,const ntm_cursor_assets *o){title_resources=r;title_objects=o;}
+static uint32_t address(ntm_task *n){return n==&continuation.fallback?0x7140:n?0x7000u+64u*(unsigned)(n-d.nodes):0;}
+static unsigned tee_sound_count,tee_sounds[64][3];
+static const ntm_tee_setup_resources *tee_resources;
+static const ntm_hole_prepare_resources *hole_resources;
+void bridge_tee(const ntm_tee_setup_resources *r,const ntm_hole_prepare_resources *h){tee_resources=r;hole_resources=h;}
+static void observe_tee_sound(void *p,uint8_t service,uint16_t command,uint16_t parameter){
+ (void)p;if(tee_sound_count<64){tee_sounds[tee_sound_count][0]=service;tee_sounds[tee_sound_count][1]=command;tee_sounds[tee_sound_count++][2]=parameter;}}
+static uint32_t callback(ntm_task_callback c){
+ if(c==tee_owner_tick)return 0x208753;
+ if(c==tee_owner_wait)return 0x20876f;
+ if(c==tee_outer_wait)return 0x203f8d;
+ if(c==tee_overview_entry)return 0x20ca45;
+ if(c==tee_tick)return 0x20cb83;
+ if(c==tee_delay)return 0x20cd28;
+ if(c==tee_open_delay)return 0x20cd5e;
+ if(c==tee_hold)return 0x20cd81;
+ if(c==tee_wait_handicap)return 0x20cdac;
+ if(c==tee_notice_entry)return 0x20ce7c;
+ if(c==tee_handicap_entry)return 0x20cf21;
+ if(c==tee_handicap_wait)return 0x20cfcc;
+ if(c==tee_handicap_cleanup)return 0x20cfdd;
+ if(c==round_entry)return 0x21480a;
+ if(c==round_tick)return 0x2148b6;
+ if(c==round_open)return 0x2148ca;
+ if(c==round_wait)return 0x21490a;
+ if(c==round_cleanup)return 0x214921;
+ if(c==round_draw_entry)return 0x214941;
+ if(c==round_draw_finish)return 0x214954;
+ if(c==round_blink_entry)return 0x214c10;
+ if(c==round_blink_tick)return 0x214c25;
+ if(c==round_blink_shown)return 0x214c4b;
+ if(c==round_blink_hidden)return 0x214c73;
+ if(c==owner_wait_round)return 0x203f73;
+ if(c==owner_tick)return 0x203f31;
+ if(c==owner_wait_intro)return 0x203f59;
+ if(c==intro_entry)return 0x20771d;
+ if(c==intro_tick)return 0x2077d3;
+ if(c==intro_visible)return 0x207809;
+ if(c==intro_title)return 0x20781a;
+ if(c==title_tick)return 0x2078da;
+ if(c==tournament_delay)return 0x207959;
+ if(c==tournament_wait)return 0x207990;
+ if(c==title_cleanup)return 0x2079a7;
+ if(c==ntm_task_finish)return 0x20132b;
+ if(c==driver_render)return 0x2095e3;
+ if(c==driver_wait)return 0x2093b8;
+ if(c==driver_cancel)return 0x2093ed;
+ if(c==driver_accept)return 0x2094cb;
+ if(c==driver_random)return 0x209485;
+ if(c==driver_cycle)return 0x209496;
+ if(c==driver_fade)return 0x209416;
+ if(c==driver_setup)return 0x2094dc;
+ if(c==driver_cancel_exit)return 0x20942d;
+ if(c==driver_accept_exit)return 0x209508;
+ if(c==driver_initialize)return 0x209395;
+ if(c==driver_intro_reset)return 0x209366;
+ if(c==driver_intro_fade)return 0x20937e;
+ if(c==ntm_course_task)return 0x209536;
+ return 0;
+}
+static void sound(void *p,uint8_t n){(void)p;if(n<3)sounds[n]++;}
+int bridge_start(const ntm_course_initialization *init,const ntm_course_screen *s,const ntm_display_reset_state *disp,const ntm_course_palette *pal,const ntm_screen_asset *assets,const ntm_palette_job *jobs,const uint8_t *descriptor,const uint8_t *fi,const uint8_t *fo,const uint8_t *random,uint8_t *random_cursor,const ntm_cursor_assets *cursor,const uint8_t *tiles,const uint8_t *maps,const uint8_t *sprites,const uint8_t *spal,const uint8_t *controls,unsigned gate,const ntm_course_intro_resources *courses,const ntm_course_records *records){
+ memset(&tee_application,0,sizeof tee_application);tee_sound_count=0;
+ tee_application.context.sound_request=observe_tee_sound;
+ if(records)continuation.records=*records;
+ memset(sounds,0,sizeof sounds);memset(round_sounds,0,sizeof round_sounds);
+ continuation.round_context.sound_request=round_sound;
+ app.initialization=*init;app.screen=*s;app.display=*disp;app.palette=*pal;
+ memcpy(app.tiles,tiles,8192);memcpy(app.maps,maps,4096);memcpy(app.sprites,sprites,256);memcpy(app.sprite_palettes,spal,64);memcpy(app.controls,controls,16);
+ resources.assets=assets;resources.palette_jobs=jobs;resources.cursor_descriptor=descriptor;resources.fade_in=fi;resources.fade_out=fo;resources.random=random;resources.random_cursor=random_cursor;resources.cursor=cursor;
+ d.context.sound_request=sound;d.context.gate=(uint8_t)gate;
+ d.parent.viewport[0]=80;d.parent.viewport[3]=152;
+ return tee_resources?ntm_tee_setup_application_start(&tee_application,&resources,courses,title_resources,title_objects,round_resources,tee_resources,hole_resources):round_resources?ntm_course_intro_application_start_round_record(&continuation,&resources,courses,title_resources,title_objects,round_resources):title_resources?ntm_course_intro_application_start_titles(&continuation,&resources,courses,title_resources,title_objects):
+     ntm_course_intro_application_start(&continuation,&resources,courses);
+}
+int bridge_update(unsigned input){return ntm_course_intro_application_update(&continuation,(uint8_t)input);}
+void *bridge_pointer(unsigned n){switch(n){case 0:return &app.initialization;case 1:return &app.screen;case 2:return &app.display;case 3:return &app.palette;case 4:return app.controls;case 5:return app.tiles;case 6:return app.maps;case 7:return app.sprites;case 8:return app.sprite_palettes;case 9:return &app.cursor_engine;case 10:return &continuation.owner;case 11:return &continuation.records;case 12:return &continuation.intro;case 13:return &continuation.intro_context;case 14:return &continuation;case 15:return &continuation.title_cursor;case 16:return &continuation.title;case 17:return &continuation.title_context;case 18:return &continuation.round_prepare;case 19:return &continuation.round_context;case 20:return &continuation.round_cursor;case 21:return &continuation.round_drawing;case 22:return &continuation.round;case 23:return &continuation.round_blink;case 24:return tee_application.objects;case 25:return &tee_application.engine;case 26:return &tee_application.context;case 27:return &tee_application.hole;case 28:return tee_application.x;case 29:return &tee_application.owner;case 30:return &tee_application.overview;default:return 0;}}
+void bridge_export(uint32_t *v){unsigned i;for(i=0;i<5;i++){
+ ntm_task *t=d.nodes+i;*v++=callback(t->callback);*v++=address(t->previous);*v++=address(t->next);*v++=address(t->owner);*v++=t->priority;*v++=t->result;*v++=t->flags;*v++=t->substate;*v++=t->delay;}
+ *v++=d.context.free_head?address(d.context.free_head):0xffffffff;*v++=address(d.context.current);*v++=address(d.context.published);
+ *v++=d.context.selection;*v++=tee_application.started?tee_application.objects[0].velocity:continuation.round.phase?continuation.round_cursor.velocity:continuation.title.phase?continuation.title_cursor.velocity:d.parent.global_word;*v++=tee_application.started?tee_application.objects[0].flags:continuation.round.phase?continuation.round_cursor.flags:continuation.title.phase?continuation.title_cursor.flags:d.parent.global_flags;*v++=d.parent.random_remaining;*v++=d.parent.mapped_course;
+ for(i=0;i<4;i++)*v++=d.parent.viewport[i];
+ *v++=d.parent.course_index;
+ for(i=0;i<3;i++)*v++=d.parent.course_order[i];
+ for(i=0;i<3;i++)*v++=sounds[i];
+ *v++=d.running;
+ *v++=continuation.owner.phase;*v++=continuation.intro.phase;
+ *v++=continuation.intro.asset_group;
+ *v++=continuation.title.phase?(uint32_t)(continuation.title.descriptor_next-continuation.courses[d.parent.mapped_course].descriptor):
+     continuation.intro.descriptor_next?(uint32_t)(continuation.intro.descriptor_next-continuation.courses[d.parent.mapped_course].descriptor):0;
+ *v++=continuation.boundary;*v++=continuation.selector_exit_update;
+ *v++=continuation.intro_start_update;*v++=continuation.first_visible_update;*v++=d.updates;
+}
+
+void bridge_title_export(uint32_t *v){*v++=continuation.title.phase;*v++=continuation.title_start_update;*v++=continuation.tournament_start_update;*v++=continuation.title_complete_update;*v++=continuation.title_x;}
+
+void bridge_round_export(uint32_t *v){*v++=continuation.round.phase;*v++=continuation.round_start_update;*v++=continuation.round_open_update;*v++=continuation.round_complete_update;*v++=continuation.round_x;*v++=continuation.round_drawing_update;}
+
+void bridge_round_sounds(uint32_t *v){unsigned i;for(i=0;i<4;i++)v[i]=round_sounds[i];}
+
+void bridge_tee_export(uint32_t *v){
+ *v++=tee_application.started;*v++=tee_application.boundary;*v++=tee_application.overview.phase;
+ *v++=tee_application.start_update;*v++=tee_application.overview_update;*v++=tee_application.open_update;
+ *v++=tee_application.hold_update;*v++=tee_application.complete_update;
+ *v++=tee_application.overview.asset_group;*v++=tee_application.overview.asset_index;
+ *v++=tee_application.owner.current_music;*v++=tee_application.owner.skip_overview;*v++=tee_application.owner.player_status;
+}
+unsigned bridge_tee_sounds(uint32_t *v){unsigned i,j;for(i=0;i<tee_sound_count;i++)for(j=0;j<3;j++)*v++=tee_sounds[i][j];return tee_sound_count;}
+
+void bridge_tee_state(unsigned skip,unsigned music,unsigned badge){
+ unsigned i;tee_application.owner.skip_overview=(uint8_t)skip;tee_application.owner.current_music=(uint8_t)music;
+ if(badge)for(i=0;i<54;i++)tee_application.saved_hole_scores[i]=1;
+}

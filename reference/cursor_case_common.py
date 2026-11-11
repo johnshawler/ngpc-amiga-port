@@ -65,7 +65,7 @@ class Model:
    a=load(shape+2*i,1);xy=load(shape+2*i+1,1)
    x=(bx+(-8*(xy&15)-8 if oldflags&8 else 8*(xy&15)))&65535
    y=(by+(-8*(xy>>4)-8 if oldflags&4 else 8*(xy>>4)))&65535
-   if not hidden and ((x+7)&65535)<166 and ((y+7)&65535)<158 and cnt<self.r(0x66bc):
+   if not hidden and ((x+7)&65535)<=166 and ((y+7)&65535)<=158 and cnt<self.r(0x66bc):
     attr=((base+i)|(priority<<11)|((a&0xf0)<<9))&65535
     attr^=(oldflags&12)<<12
     if self.r(p+14)&128:attr^=0x2000

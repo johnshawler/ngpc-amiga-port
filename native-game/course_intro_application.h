@@ -37,6 +37,9 @@ typedef struct {
     ntm_course_cursor round_cursor;uint16_t round_x;
     uint32_t round_start_update,round_open_update,round_complete_update,round_drawing_update;
     uint8_t round_owner_active;
+    /* Optional independently linked continuation, called at the real outer
+     * owner's tee allocation request. NULL preserves all existing modes. */
+    ntm_task_callback tee_continuation;
 } ntm_course_intro_application;
 /* Preserve normal application initialization and service order. The real outer
  * task is inserted before the selector parent before its first traversal.
