@@ -34,5 +34,17 @@ class NativeRendererTests(unittest.TestCase):
             result = subprocess.run([exe], check=True, capture_output=True, text=True)
             self.assertIn('PASS: 4000 scene rows', result.stdout)
 
+    def test_planar_renderer(self):
+        compiler = shlex.split(os.environ.get('CC', 'cc'))
+        if not compiler or not shutil.which(compiler[0]):
+            self.skipTest('A host C compiler is required')
+        with tempfile.TemporaryDirectory() as d:
+            exe = str(Path(d) / 'planar-test')
+            subprocess.run(compiler + ['-std=c99', '-O2', '-Wall', '-Wextra', '-Werror',
+                str(ROOT / 'native-renderer/scene_renderer.c'),
+                str(ROOT / 'native-renderer/test_planar.c'), '-o', exe], check=True)
+            result = subprocess.run([exe], check=True, capture_output=True, text=True)
+            self.assertIn('PASS: 65536 packed/dirty rows', result.stdout)
+
 if __name__ == '__main__':
     unittest.main()

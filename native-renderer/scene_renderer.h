@@ -42,4 +42,19 @@ int nr_scene_row_cached(const nr_scene *scene, unsigned y, uint8_t out[160],
 /* Store one pen row in a 160x152 eight-plane Amiga bitmap, stride >=20/even.
  * Other rows and stride padding are untouched. */
 int nr_store_scene_row(nr_bitmap *dst, unsigned y, const uint8_t pens[160]);
+/* Native 32-bit packed transpose; same contract as scalar store above. */
+int nr_store_scene_row_packed(nr_bitmap *dst,unsigned y,const uint8_t pens[160]);
+/* Optional dirty 8-pixel blocks. Cache owns a shadow of ONE bitmap; do not alter
+ * its destination pixels externally without reinitializing the cache. Palette
+ * writes need no invalidation because stored pixels are palette indices.
+ * Pointer/stride changes invalidate automatically. All arrays must be disjoint. */
+typedef struct {
+    uint8_t pens[24320];
+    uint32_t valid[152];
+    uint8_t *owner;
+    unsigned stride;
+    uint32_t converted_blocks,skipped_blocks;
+} nr_planar_cache;
+void nr_planar_cache_init(nr_planar_cache *cache);
+int nr_store_scene_row_dirty(nr_bitmap *dst,unsigned y,const uint8_t pens[160],nr_planar_cache *cache);
 #endif

@@ -8,7 +8,8 @@ case "${1:-}" in
     --scene) OUT="$ROOT/build/native-scene-display"; EXTRA=(-DNR_SCENE) ;;
     --cached) OUT="$ROOT/build/native-cached-display"; EXTRA=(-DNR_SCENE -DNR_CACHED) ;;
     --benchmark) OUT="$ROOT/build/native-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH) ;;
-    *) echo 'usage: build.sh [--scene|--cached|--benchmark]' >&2; exit 2 ;;
+    --planar-benchmark) OUT="$ROOT/build/native-planar-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH -DNR_PLANAR_BENCH) ;;
+    *) echo 'usage: build.sh [--scene|--cached|--benchmark|--planar-benchmark]' >&2; exit 2 ;;
 esac
 : "${AMIGA_BIN:?Set AMIGA_BIN to official vscode-amiga-debug/bin/linux tools}"
 mkdir -p "$OUT"

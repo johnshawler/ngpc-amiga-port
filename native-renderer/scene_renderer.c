@@ -140,3 +140,60 @@ int nr_scene_row_cached(const nr_scene *s,unsigned y,uint8_t out[160],nr_scene_c
     }
     return 0;
 }
+
+/* 8x8 bit transpose using two 32-bit words, never 64-bit arithmetic or tables.
+ * First output byte is plane 7; input pixel zero becomes its most significant bit. */
+static void pack8(const uint8_t *p,uint8_t *dst,size_t plane_size)
+{
+    uint32_t hi=((uint32_t)p[0]<<24)|((uint32_t)p[1]<<16)|((uint32_t)p[2]<<8)|p[3];
+    uint32_t lo=((uint32_t)p[4]<<24)|((uint32_t)p[5]<<16)|((uint32_t)p[6]<<8)|p[7];
+    uint32_t a,b;
+    a=(lo^((lo>>7)|(hi<<25)))&0x00aa00aaU;b=(hi^(hi>>7))&0x00aa00aaU;
+    lo^=a^(a<<7);hi^=b^(b<<7)^(a>>25);
+    a=(lo^((lo>>14)|(hi<<18)))&0x0000ccccU;b=(hi^(hi>>14))&0x0000ccccU;
+    lo^=a^(a<<14);hi^=b^(b<<14)^(a>>18);
+    a=(lo^((lo>>28)|(hi<<4)))&0xf0f0f0f0U;
+    lo^=a^(a<<28);hi^=a>>4;
+    dst[0]=(uint8_t)lo;dst[plane_size]=(uint8_t)(lo>>8);
+    dst[plane_size*2]=(uint8_t)(lo>>16);dst[plane_size*3]=(uint8_t)(lo>>24);
+    dst[plane_size*4]=(uint8_t)hi;dst[plane_size*5]=(uint8_t)(hi>>8);
+    dst[plane_size*6]=(uint8_t)(hi>>16);dst[plane_size*7]=(uint8_t)(hi>>24);
+}
+static int valid_scene_bitmap(const nr_bitmap *d,unsigned y,const uint8_t *pens)
+{
+    return d && d->data && pens && d->width==160 && d->height==152 &&
+        d->stride>=20 && d->stride<=4096 && !(d->stride&1) && y<152 &&
+        d->capacity>=(size_t)d->stride*152*8;
+}
+int nr_store_scene_row_packed(nr_bitmap *d,unsigned y,const uint8_t pens[160])
+{
+    unsigned b;
+    if(!valid_scene_bitmap(d,y,pens))return -1;
+    for(b=0;b<20;b++)pack8(pens+b*8,d->data+y*d->stride+b,(size_t)d->stride*152);
+    return 0;
+}
+void nr_planar_cache_init(nr_planar_cache *c)
+{
+    unsigned y;if(!c)return;
+    for(y=0;y<152;y++)c->valid[y]=0;
+    c->owner=0;c->stride=0;c->converted_blocks=0;c->skipped_blocks=0;
+}
+int nr_store_scene_row_dirty(nr_bitmap *d,unsigned y,const uint8_t pens[160],nr_planar_cache *c)
+{
+    unsigned b,i;
+    if(!c || !valid_scene_bitmap(d,y,pens))return -1;
+    if(c->owner!=d->data || c->stride!=d->stride) {
+        for(i=0;i<152;i++)c->valid[i]=0;
+        c->owner=d->data;c->stride=d->stride;
+    }
+    for(b=0;b<20;b++) {
+        uint8_t *previous=c->pens+y*160+b*8;
+        unsigned changed=!(c->valid[y]&(1u<<b));
+        if(!changed)for(i=0;i<8;i++)if(previous[i]!=pens[b*8+i]) {changed=1;break;}
+        if(!changed) {c->skipped_blocks++;continue;}
+        pack8(pens+b*8,d->data+y*d->stride+b,(size_t)d->stride*152);
+        for(i=0;i<8;i++)previous[i]=pens[b*8+i];
+        c->valid[y]|=1u<<b;c->converted_blocks++;
+    }
+    return 0;
+}

@@ -9,7 +9,8 @@ case "${1:-}" in
     --scene) OUT="$ROOT/build/native-scene-display"; EXTRA=(--scene) ;;
     --cached) OUT="$ROOT/build/native-cached-display"; EXTRA=(--scene) ;;
     --benchmark) OUT="$ROOT/build/native-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
-    *) echo 'usage: run.sh [--scene|--cached|--benchmark]'  >&2; exit 2 ;;
+    --planar-benchmark) OUT="$ROOT/build/native-planar-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
+    *) echo 'usage: run.sh [--scene|--cached|--benchmark|--planar-benchmark]'  >&2; exit 2 ;;
 esac
 : "${PUAE_CORE:?Set PUAE_CORE to built official libretro PUAE shared core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
@@ -22,4 +23,8 @@ python3 "$ROOT/native-renderer/amiga/verify.py" "${EXTRA[@]}" --capture "$OUT/sc
 
 if [ "${1:-}" = --benchmark ]; then
     python3 "$ROOT/native-renderer/amiga/verify_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
+fi
+
+if [ "${1:-}" = --planar-benchmark ]; then
+    python3 "$ROOT/native-renderer/amiga/verify_planar_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
 fi

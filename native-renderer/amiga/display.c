@@ -6,7 +6,11 @@
 #endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 #ifdef NR_BENCH
+#ifdef NR_PLANAR_BENCH
+#include "planar_benchmark.inc"
+#else
 #include "benchmark.inc"
+#endif
 #endif
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=reg;*(*c)++=value;}
 void display_prepare(uint8_t *block)
