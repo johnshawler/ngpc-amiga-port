@@ -1,5 +1,9 @@
 # Native course-screen drawing
 
+Later integration: [COURSE_APPLICATION.md](COURSE_APPLICATION.md) adds native
+background/palette initialization and an input-driven selector task loop. The
+older checkpoint scope and measurements below remain historical.
+
 This is new recovery/reimplementation work, not restoration of the lost runtime.
 `course_screen.c` converts the actual course-selection label drawing service
 (0x209603), its change-gated task (0x2095e3), and the bounded drawing-queue

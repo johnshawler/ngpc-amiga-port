@@ -110,3 +110,9 @@ The next verified consumer is the [native course-selection handler](COURSE_CHOIC
 See [COURSE_SCREEN.md](COURSE_SCREEN.md) for the native deferred drawing queues,
 course-label tile/map loader, parent render adapter and original comparisons.
 This advances real drawing; complete interactive application/audio remain unfinished.
+
+## Backgrounds and ordered input loop
+
+[COURSE_APPLICATION.md](COURSE_APPLICATION.md) covers native background/palette
+initialization, fade-in and the bounded input-driven selector application.
+Cursor-object realization, audio and a user-facing Amiga frontend remain absent.

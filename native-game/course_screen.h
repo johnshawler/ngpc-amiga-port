@@ -18,6 +18,12 @@ typedef struct {
  * Full queues silently drop their respective request, as in the original.
  * These producers do NOT change tilemap memory. Assets remain borrowed until
  * their queued request is consumed. Cache gate uses the complete 16-bit word. */
+/* Shared bounded producers. Return0 queued,1 queue full,-1 invalid contract.
+ * Initialization also uses these for background jobs; drains stay separate. */
+int ntm_course_screen_enqueue_fill(ntm_course_screen *screen,uint16_t offset,
+    uint8_t width,uint8_t height,uint16_t fill);
+int ntm_course_screen_enqueue_stamp(ntm_course_screen *screen,const ntm_screen_asset *asset,
+    uint16_t offset,uint16_t tile);
 int ntm_course_screen_draw(ntm_course_screen *screen,uint16_t selection,
                           const ntm_screen_asset assets[3]);
 int ntm_course_screen_tick(ntm_course_screen *screen,uint16_t selection,

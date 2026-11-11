@@ -106,3 +106,37 @@ screen-sanitize: | $(BUILD)
 screen-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(SCREEN) -o $(BUILD)/test-screen-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-screen-68020
+
+INITIALIZATION=course_initialization.c course_palette.c course_screen.c game_services.c test_course_initialization.c
+DRIVER=input_state.c course_choice.c task_lifecycle.c task_allocation.c random_byte.c viewport.c game_services.c course_parent.c course_screen.c course_driver.c test_course_driver.c
+.PHONY: initialization initialization-sanitize initialization-m68020 driver driver-sanitize driver-m68020
+initialization: | $(BUILD)
+	$(CC) $(FLAGS) $(INITIALIZATION) -o $(BUILD)/test-initialization
+	$(BUILD)/test-initialization
+initialization-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(INITIALIZATION) -o $(BUILD)/test-initialization-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-initialization-sanitize
+initialization-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(INITIALIZATION) -o $(BUILD)/test-initialization-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-initialization-68020
+driver: | $(BUILD)
+	$(CC) $(FLAGS) $(DRIVER) -o $(BUILD)/test-driver
+	$(BUILD)/test-driver
+driver-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(DRIVER) -o $(BUILD)/test-driver-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-driver-sanitize
+driver-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(DRIVER) -o $(BUILD)/test-driver-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-driver-68020
+
+APPLICATION=$(filter-out test_course_driver.c,$(DRIVER)) course_palette.c course_initialization.c course_application.c ../native-renderer/scene_renderer.c ../native-renderer/tile_renderer.c test_course_application.c
+.PHONY: application application-sanitize application-m68020
+application: | $(BUILD)
+	$(CC) $(FLAGS) $(APPLICATION) -o $(BUILD)/test-application
+	$(BUILD)/test-application
+application-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(APPLICATION) -o $(BUILD)/test-application-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-application-sanitize
+application-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(APPLICATION) -o $(BUILD)/test-application-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-application-68020

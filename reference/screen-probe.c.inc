@@ -14,3 +14,5 @@ __attribute__((visibility("default"))) unsigned retro_reference_life_load(unsign
 {return n==1?loadB(a):n==2?loadW(a):loadL(a);}
 __attribute__((visibility("default"))) void retro_reference_life_step(unsigned unused)
 {(void)unused;TLCS900h_interpret();}
+__attribute__((visibility("default"))) uint8_t *retro_reference_course_ram(void)
+{return CPUExRAM;}

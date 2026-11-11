@@ -4,22 +4,34 @@ static int screen_producer_valid(const ntm_course_screen *s,uint16_t selection,c
 {
     return s && assets && selection<3 && s->stamp_bytes<=256 && !(s->stamp_bytes&7);
 }
-int ntm_course_screen_draw(ntm_course_screen *s,uint16_t selection,const ntm_screen_asset assets[3])
+int ntm_course_screen_enqueue_fill(ntm_course_screen *s,uint16_t offset,
+    uint8_t width,uint8_t height,uint16_t fill)
 {
     unsigned i;
-    if(!screen_producer_valid(s,selection,assets))return -1;
-    s->displayed_selection=(uint8_t)selection;s->cursor_x=(uint16_t)(8+48*selection);
+    if(!s || !width || !height || (offset&1) || (unsigned)offset+64u*(height-1u)+2u*width>4096)return -1;
     for(i=8;i;i--)if(s->fill_status[i-1]==255) {
         ntm_screen_fill *f=s->fills+i-1;
-        f->offset=0x300;f->width=20;f->height=6;f->fill=0;s->fill_status[i-1]=0;break;
+        f->offset=offset;f->width=width;f->height=height;f->fill=fill;s->fill_status[i-1]=0;return 0;
     }
-    if(s->stamp_bytes<256) {
-        ntm_screen_stamp *stamp=s->stamps+s->stamp_bytes/8;
-        stamp->asset.data=assets[selection].data;stamp->asset.size=assets[selection].size;
-        stamp->asset.tiles=assets[selection].tiles;stamp->asset.tiles_size=assets[selection].tiles_size;
-        stamp->offset=(uint16_t)(0x302+12*selection);stamp->tile=301;
-        s->stamp_bytes=(uint16_t)(s->stamp_bytes+8);
-    }
+    return 1;
+}
+int ntm_course_screen_enqueue_stamp(ntm_course_screen *s,const ntm_screen_asset *asset,
+    uint16_t offset,uint16_t tile)
+{
+    ntm_screen_stamp *stamp;
+    if(!s || !asset || s->stamp_bytes>256 || (s->stamp_bytes&7))return -1;
+    if(s->stamp_bytes==256)return 1;
+    stamp=s->stamps+s->stamp_bytes/8;
+    stamp->asset.data=asset->data;stamp->asset.size=asset->size;
+    stamp->asset.tiles=asset->tiles;stamp->asset.tiles_size=asset->tiles_size;
+    stamp->offset=offset;stamp->tile=tile;s->stamp_bytes=(uint16_t)(s->stamp_bytes+8);return 0;
+}
+int ntm_course_screen_draw(ntm_course_screen *s,uint16_t selection,const ntm_screen_asset assets[3])
+{
+    if(!screen_producer_valid(s,selection,assets))return -1;
+    s->displayed_selection=(uint8_t)selection;s->cursor_x=(uint16_t)(8+48*selection);
+    (void)ntm_course_screen_enqueue_fill(s,0x300,20,6,0);
+    (void)ntm_course_screen_enqueue_stamp(s,assets+selection,(uint16_t)(0x302+12*selection),301);
     return 0;
 }
 int ntm_course_screen_tick(ntm_course_screen *s,uint16_t selection,const ntm_screen_asset assets[3])

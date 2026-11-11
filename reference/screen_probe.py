@@ -36,3 +36,6 @@ reg=core.retro_reference_life_reg;get=core.retro_reference_life_getreg;store=cor
 
 def setup():
  core.retro_reference_life_reset();reg(7,0x6be0);store(0x6be0,0xef00,4)
+
+core.retro_reference_course_ram.restype=C.POINTER(C.c_ubyte)
+ram=core.retro_reference_course_ram()
