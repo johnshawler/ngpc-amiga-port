@@ -6,6 +6,9 @@
 #define NTM_TEE_ANIMATION_LIMIT 40
 /* Borrowed, resolved spans. Embedded cartridge pointers are not followed. */
 typedef struct {
+    /* Tag27 alone uses dense slots3*(selection/64-1)+(selection%64)/8
+     * for original selections64..384 by64 plus0/8/16. Other tags use
+     * selection/4. Object records retain their original selection words. */
     ntm_cursor_animation animations[NTM_TEE_ANIMATION_LIMIT];
     const uint8_t *shapes,*tiles;
     size_t shapes_size,tiles_size;
@@ -32,8 +35,10 @@ int ntm_tee_object_remove(ntm_display_reset_state *display,ntm_course_cursor *ob
 /* Display reset with only record ID/tag synchronization; all other record and
  * engine state is deliberately retained, just as original2006cf. */
 int ntm_tee_objects_reset(ntm_display_reset_state *display,ntm_course_cursor objects[32]);
-/* Original201192 then200c7b. Supports color-mode tee tags29..32/index52,
- * first-tee tag24/index56, shot tag5/indices68,72,76 and the initial aim scene's
+/* Original201192 then200c7b. Supports tag51/index60 with selections88..120
+ * in steps4, color-mode tee tags29..32/index52,
+ * trajectory tag27/index60 frozen lifecycle1 selections, first-tee tag24/index56,
+ * shot tag5/indices68,72,76 and the initial aim scene's
  * tags1..4,6..11/index56 with selections8,44,40,48,120,52,56,128,124,132,
  * their bounded animation selections, at most two noncollision components per
  * frame, empty sentinel shapes, flips, clipping, freeze/restart/removal.

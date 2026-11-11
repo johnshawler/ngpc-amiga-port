@@ -11,6 +11,8 @@ static int display_valid(const ntm_display_reset_state *d)
 }
 static int tag_valid(const ntm_course_cursor *c)
 {
+    if(c->tag==51)return c->width==60 && c->velocity>=88 && c->velocity<=120 && !(c->velocity&3);
+    if(c->tag==27)return c->width==60 && c->velocity>=64 && c->velocity<=400 && c->velocity%64<=16 && !(c->velocity&7);
     if(c->tag==5)return c->width>=68 && c->width<=76 && !(c->width&3) && c->velocity<=68 && !(c->velocity&3);
     if(c->width==56) {
         switch(c->tag) {
@@ -98,7 +100,7 @@ static int plan_object(const ntm_tee_object_engine *e,const ntm_course_cursor *c
 {
     unsigned component,total=0,k,f;uint8_t old=c->flags;const ntm_cursor_animation *anim;
     if(!a || !tag_valid(c))return 0;
-    anim=a->animations+c->velocity/4;
+    anim=a->animations+(c->tag==27?3*(c->velocity/64-1)+(c->velocity%64)/8:c->velocity/4);
     if(!anim->data || !anim->frames || anim->frames>64 || 4u*anim->frames>anim->size)return 0;
     p->frame=e->frame[id];p->delay=e->delay[id];p->flags=old;p->status=c->byte30&127;
     p->changed=(global&32)!=0;
@@ -169,7 +171,7 @@ int ntm_tee_objects_tail(ntm_tee_object_engine *e,ntm_course_cursor c[32],
     bank=d->zero_flags[1]&1;e->list_dirty_high=0;
     for(i=0;i<n;i++) {
         unsigned id=list[i]&255,tile=c[id].tile;object_plan *p=plan+id;ntm_course_cursor *o=c+id;
-        const ntm_tee_object_assets *res=a[id];const ntm_cursor_animation *anim=res->animations+o->velocity/4;
+        const ntm_tee_object_assets *res=a[id];const ntm_cursor_animation *anim=res->animations+(o->tag==27?3*(o->velocity/64-1)+(o->velocity%64)/8:o->velocity/4);
         uint8_t old=o->flags;
         e->frame[id]=p->frame;e->delay[id]=p->delay;o->flags=p->flags;o->byte30=p->status;
         for(j=0;j<4;j++)e->bounds[id][j]=65535;
