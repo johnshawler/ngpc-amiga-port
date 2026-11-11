@@ -4,7 +4,7 @@ ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT="$ROOT/build/native-intro"
 mkdir -p "$OUT"
 SOURCES=()
-for name in input_state course_choice task_lifecycle task_allocation random_byte viewport game_services course_parent course_screen course_driver course_palette course_initialization course_cursor course_application course_intro course_title course_intro_application; do SOURCES+=("$ROOT/native-game/$name.c"); done
+for name in input_state course_choice task_lifecycle task_allocation random_byte viewport game_services course_parent course_screen course_driver course_palette course_initialization course_cursor course_application course_intro course_title round_record round_prepare course_intro_application; do SOURCES+=("$ROOT/native-game/$name.c"); done
 SOURCES+=("$ROOT/native-renderer/scene_renderer.c" "$ROOT/native-renderer/tile_renderer.c")
 FLAGS=(-std=c99 -O2 -Wall -Wextra -Werror)
 for test in test_course_intro_application test_course_title_application; do

@@ -14,12 +14,12 @@ cc $FLAGS native-game/course_palette.c -o build/course-init-check/native_palette
 cc $FLAGS native-game/course_palette.c native-game/course_initialization.c native-game/course_screen.c native-game/game_services.c -o build/course-init-check/native_initialization.so
 cc $FLAGS native-game/course_cursor.c native-game/game_services.c -o build/cursor-check/native_cursor_final.so
 cc $FLAGS native-game/course_intro.c native-game/course_palette.c native-game/course_screen.c native-game/game_services.c native-game/task_allocation.c native-game/task_lifecycle.c native-game/course_choice.c native-game/input_state.c -o build/course-intro-check/native_intro.so
-cc $FLAGS -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c $COMMON -o build/course-intro-check/native_intro_application.so
+cc $FLAGS -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c native-game/round_record.c native-game/round_prepare.c $COMMON -o build/course-intro-check/native_intro_application.so
 for variant in default private; do
  if [ "$variant" = private ]; then
   EXTRA='-DNTM_SCREEN_PRIVATE_ASSETS native-renderer/amiga/intro_copy.c native-renderer/amiga/selector_memory.c'
   cc $FLAGS $EXTRA native-game/course_intro.c native-game/course_palette.c native-game/course_screen.c native-game/game_services.c native-game/task_allocation.c native-game/task_lifecycle.c native-game/course_choice.c native-game/input_state.c -o build/course-intro-check/native_intro_private.so
-  cc $FLAGS $EXTRA -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c $COMMON -o build/course-intro-check/native_intro_application_private.so
+  cc $FLAGS $EXTRA -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c native-game/round_record.c native-game/round_prepare.c $COMMON -o build/course-intro-check/native_intro_application_private.so
   export NTM_INTRO_LIBRARY="$ROOT/build/course-intro-check/native_intro_private.so"
   export NTM_INTRO_APPLICATION_LIBRARY="$ROOT/build/course-intro-check/native_intro_application_private.so"
  else

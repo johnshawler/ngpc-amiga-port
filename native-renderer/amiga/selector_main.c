@@ -12,6 +12,10 @@ static ntm_course_intro_application continuation;
 static ntm_course_intro_resources courses[3];
 static ntm_course_title_resources titles[3];
 static ntm_cursor_assets title_objects[3];
+#ifdef NTM_ROUND_RECORD_TARGET
+static ntm_round_record_resources round_resources;
+static ntm_cursor_assets round_object;
+#endif
 #define app continuation.selector
 #endif
 #ifdef SELECTOR_PLANAR_CACHE
@@ -41,6 +45,9 @@ static struct snapshot {
     uint32_t update,selection,invert,cache_index,lookup_ticks;
 #ifdef NTM_COURSE_INTRO_TARGET
     uint32_t intro_metadata[16]; /* Immutable metadata for the shown snapshot. */
+#ifdef NTM_ROUND_RECORD_TARGET
+    uint32_t round_metadata[16];
+#endif
 #endif
 } snapshots[2];
 static volatile uint32_t *report;
@@ -89,6 +96,11 @@ static void pump(void)
     report[58]=continuation.title_start_update;report[59]=continuation.tournament_start_update;
     report[60]=continuation.title_complete_update;report[61]=continuation.title.phase;
     report[63]=continuation.tournament_prepare_update;
+#ifdef NTM_ROUND_RECORD_TARGET
+    report[64]=continuation.round_start_update;report[65]=continuation.round_open_update;
+    report[66]=continuation.round_complete_update;report[67]=continuation.round.phase;
+    report[70]=continuation.round_drawing_update;
+#endif
 #endif
 }
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=(uint16_t)reg;*(*c)++=(uint16_t)value;}
@@ -128,6 +140,13 @@ static void snapshot(unsigned index)
      m[2]=app.cursor_engine.frame;m[3]=app.cursor_engine.delay;m[4]=continuation.title_x;m[5]=c->y;
      m[6]=c->tile;m[7]=c->flags;m[8]=c->byte14;m[9]=c->byte15;m[10]=c->tag;m[11]=c->width;
      m[12]=c->velocity;m[13]=c->byte30;m[14]=app.display.zero_flags[8];m[15]=app.display.zero_flags[10];}
+#ifdef NTM_ROUND_RECORD_TARGET
+    {const ntm_course_cursor *c=&continuation.round_cursor;uint32_t *m=s->round_metadata;
+     m[0]=continuation.round.phase;m[1]=continuation.round_blink.phase;
+     m[2]=app.cursor_engine.frame;m[3]=app.cursor_engine.delay;m[4]=continuation.round_x;m[5]=c->y;
+     m[6]=c->tile;m[7]=c->flags;m[8]=c->byte14;m[9]=c->byte15;m[10]=c->tag;m[11]=c->width;
+     m[12]=c->velocity;m[13]=c->byte30;m[14]=app.display.zero_flags[8];m[15]=app.display.zero_flags[10];}
+#endif
 #endif
     report[18]=s->update;report[20]=s->selection;
 }
@@ -148,6 +167,9 @@ static void present(unsigned index,unsigned clen,uint32_t start)
     report[46]=s->cache_index;report[47]=s->lookup_ticks;
 #ifdef NTM_COURSE_INTRO_TARGET
     report[57]=(unsigned)s->intro_metadata;report[62]=s->intro_metadata[0];
+#ifdef NTM_ROUND_RECORD_TARGET
+    report[68]=s->round_metadata[0];report[69]=(unsigned)s->round_metadata;
+#endif
 #endif
     report[2]=0x52454144;
 }
@@ -160,19 +182,31 @@ void selector_main(uint8_t *block)
     uint8_t row[160];
 #endif
     report=(volatile uint32_t *)block;
-#ifdef NTM_COURSE_INTRO_TARGET
+#ifdef NTM_ROUND_RECORD_TARGET
+    report[0]=0x4e524e44;
+#elif defined(NTM_COURSE_INTRO_TARGET)
     report[0]=0x4e494e54;
 #else
     report[0]=0x4e53454c;
 #endif
     report[1]=0x30303031;report[3]=(unsigned)block;
-    bitmaps[0]=block+256;bitmaps[1]=bitmaps[0]+BITMAP_BYTES;
+#ifdef NTM_ROUND_RECORD_TARGET
+    bitmaps[0]=block+512;
+#else
+    bitmaps[0]=block+256;
+#endif
+    bitmaps[1]=bitmaps[0]+BITMAP_BYTES;
     coppers[0]=(uint16_t *)(bitmaps[1]+BITMAP_BYTES);coppers[1]=coppers[0]+COPPER_WORDS;
     selector_initialize(&app);selector_resources(&resources,assets,jobs,&random_cursor);
     nr_scene_cache_init(&composition);
 #ifdef NTM_COURSE_INTRO_TARGET
     intro_resources(courses);intro_title_resources(titles,title_objects);
+#ifdef NTM_ROUND_RECORD_TARGET
+    intro_round_resources(&round_resources,&round_object);
+    if(ntm_course_intro_application_start_round_record(&continuation,&resources,courses,titles,title_objects,&round_resources)<0)
+#else
     if(ntm_course_intro_application_start_titles(&continuation,&resources,courses,titles,title_objects)<0)
+#endif
 #else
     if(ntm_course_application_start(&app,&resources)<0)
 #endif

@@ -28,7 +28,7 @@ int ntm_course_screen_draw(ntm_course_screen *screen,uint16_t selection,
                           const ntm_screen_asset assets[3]);
 int ntm_course_screen_tick(ntm_course_screen *screen,uint16_t selection,
                           const ntm_screen_asset assets[3]);
-/* Bounded course assets: normal orientation, 16-bit sentinel map rows.
+/* Bounded course assets: normal orientation, 8-bit/16-bit sentinel map rows.
  * Source header pointer bytes are never dereferenced: tiles is resolved by the
  * asset loader. Writes target caller-owned native scene arrays. */
 int ntm_course_screen_stamp(const ntm_screen_stamp *stamp,uint8_t tiles[8192],uint8_t maps[4096]);

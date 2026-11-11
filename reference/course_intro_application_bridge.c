@@ -6,12 +6,27 @@
 static ntm_course_intro_application continuation;
 #define app (continuation.selector)
 #define d (app.driver)
-static unsigned sounds[3];static ntm_course_resources resources;
+static unsigned sounds[3],round_sounds[4];static ntm_course_resources resources;
+static void round_sound(void *p,uint16_t n){(void)p;if(round_sounds[0]<3)round_sounds[1+round_sounds[0]++]=n;}
 static const ntm_course_title_resources *title_resources;
+static const ntm_round_record_resources *round_resources;
+void bridge_round(const ntm_round_record_resources *r){round_resources=r;}
 static const ntm_cursor_assets *title_objects;
 void bridge_titles(const ntm_course_title_resources *r,const ntm_cursor_assets *o){title_resources=r;title_objects=o;}
 static uint32_t address(ntm_task *n){return n==&continuation.fallback?0x7140:n?0x7000u+64u*(unsigned)(n-d.nodes):0;}
 static uint32_t callback(ntm_task_callback c){
+ if(c==round_entry)return 0x21480a;
+ if(c==round_tick)return 0x2148b6;
+ if(c==round_open)return 0x2148ca;
+ if(c==round_wait)return 0x21490a;
+ if(c==round_cleanup)return 0x214921;
+ if(c==round_draw_entry)return 0x214941;
+ if(c==round_draw_finish)return 0x214954;
+ if(c==round_blink_entry)return 0x214c10;
+ if(c==round_blink_tick)return 0x214c25;
+ if(c==round_blink_shown)return 0x214c4b;
+ if(c==round_blink_hidden)return 0x214c73;
+ if(c==owner_wait_round)return 0x203f73;
  if(c==owner_tick)return 0x203f31;
  if(c==owner_wait_intro)return 0x203f59;
  if(c==intro_entry)return 0x20771d;
@@ -43,21 +58,22 @@ static void sound(void *p,uint8_t n){(void)p;if(n<3)sounds[n]++;}
 int bridge_start(const ntm_course_initialization *init,const ntm_course_screen *s,const ntm_display_reset_state *disp,const ntm_course_palette *pal,const ntm_screen_asset *assets,const ntm_palette_job *jobs,const uint8_t *descriptor,const uint8_t *fi,const uint8_t *fo,const uint8_t *random,uint8_t *random_cursor,const ntm_cursor_assets *cursor,const uint8_t *tiles,const uint8_t *maps,const uint8_t *sprites,const uint8_t *spal,const uint8_t *controls,unsigned gate,const ntm_course_intro_resources *courses,const ntm_course_records *records){
  memset(&continuation,0,sizeof continuation);
  if(records)continuation.records=*records;
- memset(sounds,0,sizeof sounds);
+ memset(sounds,0,sizeof sounds);memset(round_sounds,0,sizeof round_sounds);
+ continuation.round_context.sound_request=round_sound;
  app.initialization=*init;app.screen=*s;app.display=*disp;app.palette=*pal;
  memcpy(app.tiles,tiles,8192);memcpy(app.maps,maps,4096);memcpy(app.sprites,sprites,256);memcpy(app.sprite_palettes,spal,64);memcpy(app.controls,controls,16);
  resources.assets=assets;resources.palette_jobs=jobs;resources.cursor_descriptor=descriptor;resources.fade_in=fi;resources.fade_out=fo;resources.random=random;resources.random_cursor=random_cursor;resources.cursor=cursor;
  d.context.sound_request=sound;d.context.gate=(uint8_t)gate;
  d.parent.viewport[0]=80;d.parent.viewport[3]=152;
- return title_resources?ntm_course_intro_application_start_titles(&continuation,&resources,courses,title_resources,title_objects):
+ return round_resources?ntm_course_intro_application_start_round_record(&continuation,&resources,courses,title_resources,title_objects,round_resources):title_resources?ntm_course_intro_application_start_titles(&continuation,&resources,courses,title_resources,title_objects):
      ntm_course_intro_application_start(&continuation,&resources,courses);
 }
 int bridge_update(unsigned input){return ntm_course_intro_application_update(&continuation,(uint8_t)input);}
-void *bridge_pointer(unsigned n){switch(n){case 0:return &app.initialization;case 1:return &app.screen;case 2:return &app.display;case 3:return &app.palette;case 4:return app.controls;case 5:return app.tiles;case 6:return app.maps;case 7:return app.sprites;case 8:return app.sprite_palettes;case 9:return &app.cursor_engine;case 10:return &continuation.owner;case 11:return &continuation.records;case 12:return &continuation.intro;case 13:return &continuation.intro_context;case 14:return &continuation;case 15:return &continuation.title_cursor;case 16:return &continuation.title;case 17:return &continuation.title_context;default:return 0;}}
+void *bridge_pointer(unsigned n){switch(n){case 0:return &app.initialization;case 1:return &app.screen;case 2:return &app.display;case 3:return &app.palette;case 4:return app.controls;case 5:return app.tiles;case 6:return app.maps;case 7:return app.sprites;case 8:return app.sprite_palettes;case 9:return &app.cursor_engine;case 10:return &continuation.owner;case 11:return &continuation.records;case 12:return &continuation.intro;case 13:return &continuation.intro_context;case 14:return &continuation;case 15:return &continuation.title_cursor;case 16:return &continuation.title;case 17:return &continuation.title_context;case 18:return &continuation.round_prepare;case 19:return &continuation.round_context;case 20:return &continuation.round_cursor;case 21:return &continuation.round_drawing;case 22:return &continuation.round;case 23:return &continuation.round_blink;default:return 0;}}
 void bridge_export(uint32_t *v){unsigned i;for(i=0;i<5;i++){
  ntm_task *t=d.nodes+i;*v++=callback(t->callback);*v++=address(t->previous);*v++=address(t->next);*v++=address(t->owner);*v++=t->priority;*v++=t->result;*v++=t->flags;*v++=t->substate;*v++=t->delay;}
  *v++=d.context.free_head?address(d.context.free_head):0xffffffff;*v++=address(d.context.current);*v++=address(d.context.published);
- *v++=d.context.selection;*v++=continuation.title.phase?continuation.title_cursor.velocity:d.parent.global_word;*v++=continuation.title.phase?continuation.title_cursor.flags:d.parent.global_flags;*v++=d.parent.random_remaining;*v++=d.parent.mapped_course;
+ *v++=d.context.selection;*v++=continuation.round.phase?continuation.round_cursor.velocity:continuation.title.phase?continuation.title_cursor.velocity:d.parent.global_word;*v++=continuation.round.phase?continuation.round_cursor.flags:continuation.title.phase?continuation.title_cursor.flags:d.parent.global_flags;*v++=d.parent.random_remaining;*v++=d.parent.mapped_course;
  for(i=0;i<4;i++)*v++=d.parent.viewport[i];
  *v++=d.parent.course_index;
  for(i=0;i<3;i++)*v++=d.parent.course_order[i];
@@ -72,3 +88,7 @@ void bridge_export(uint32_t *v){unsigned i;for(i=0;i<5;i++){
 }
 
 void bridge_title_export(uint32_t *v){*v++=continuation.title.phase;*v++=continuation.title_start_update;*v++=continuation.tournament_start_update;*v++=continuation.title_complete_update;*v++=continuation.title_x;}
+
+void bridge_round_export(uint32_t *v){*v++=continuation.round.phase;*v++=continuation.round_start_update;*v++=continuation.round_open_update;*v++=continuation.round_complete_update;*v++=continuation.round_x;*v++=continuation.round_drawing_update;}
+
+void bridge_round_sounds(uint32_t *v){unsigned i;for(i=0;i<4;i++)v[i]=round_sounds[i];}

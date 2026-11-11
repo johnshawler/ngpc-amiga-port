@@ -37,7 +37,7 @@ def source_palette(rom, course):
     return palette
 
 
-def source_state(rom, ram, words, timeline):
+def source_state(rom, ram, words, timeline, writes_only=False):
     """Decode the original resources independently and replay only their writes.
 
     Native phase is observed, never changed. Update markers distinguish queued
@@ -121,6 +121,8 @@ def source_state(rom, ram, words, timeline):
     if update >= prepare_at + 1:
         stamp(2, 0x180, value(descriptor + 10, 2))
         sprite_bytes, sprite_palettes = bytearray(256), bytearray(64)
+    if writes_only:
+        return tiles, maps, sprite_bytes, sprite_palettes
     for offset, byte in tiles.items():
         assert ram[words[22] + offset] == byte, ('Source tile byte', offset)
     for offset, byte in maps.items():
@@ -215,7 +217,7 @@ def main():
               'skip_input_events': re.findall(r'^(?:TITLE|TOURNAMENT)_SKIP .*$', log, re.M)}
     result = {'result': 'PASS', 'scenario': a.scenario, 'model': 'PAL A1200 68EC020 AGA, 2 MiB Chip, zero Fast', 'captures': results, 'presentations': presentations, 'timing': timing,
               'checks': ['hardware joystick normal/random/cancel/skip path', 'real scheduled selector, owner and title child through round-record boundary', 'every bitplane and RGB capture pixel independently composed', '512 source palette bytes independently resolved', 'course/title/tournament source tiles/maps and object sprites independently decoded', 'zero dropped logical updates'],
-              'limits': ['round-record and tee-shot remain unimplemented', 'default normal golfer0 record, no save restoration', 'immutable presentation can lag or miss logical phases; see actual presented snapshot phases', 'no audio, physical hardware or full-speed claim', 'hardware takeover until emulator reset']}
+              'limits': ['this target stops before round-record; tee-shot and later gameplay remain unimplemented', 'default normal golfer0 record, no save restoration', 'immutable presentation can lag or miss logical phases; see actual presented snapshot phases', 'no audio, physical hardware or full-speed claim', 'hardware takeover until emulator reset']}
     (a.directory/'verification.json').write_text(json.dumps(result, indent=2) + '\n')
     print(json.dumps(result, indent=2))
 

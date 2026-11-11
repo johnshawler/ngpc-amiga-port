@@ -70,6 +70,26 @@ int main(void)
         screen.fills[0].fill=0xabcd;screen.fills[7].fill=0x1234;
         assert(!ntm_course_screen_fill_queue(&screen,maps) && maps[0]==205 && maps[1]==171);
     }
+    /* Narrow byte-map sentinel rows: exact final word, truncation and malformed
+     * second row validate before any tile or map write. */
+    {
+        uint8_t asset[]={1,0,0,0,0,0,0,0,1,254,255},pixels[16]={0};
+        uint8_t tiles[8192],maps[4096],oldtiles[8192],oldmaps[4096];
+        ntm_screen_stamp stamp={{asset,sizeof asset,pixels,sizeof pixels},4094,1};
+        memset(tiles,77,sizeof tiles);memset(maps,99,sizeof maps);
+        assert(ntm_course_screen_stamp(&stamp,tiles,maps)==0 && maps[4094]==255 && maps[4095]==0);
+        memcpy(oldtiles,tiles,sizeof tiles);memcpy(oldmaps,maps,sizeof maps);
+        for(i=0;i<5;i++) {
+            stamp.asset.size=sizeof asset;stamp.offset=4094;asset[8]=1;asset[9]=254;
+            if(i==0)stamp.asset.size--; /* Missing row sentinel. */
+            if(i==1)asset[9]=255; /* Empty row. */
+            if(i==2)asset[8]=2; /* Missing second row. */
+            if(i==3)stamp.offset=4095; /* Misaligned destination. */
+            if(i==4)asset[8]=0; /* No rows. */
+            assert(ntm_course_screen_stamp(&stamp,tiles,maps)==-1);
+            assert(!memcmp(tiles,oldtiles,sizeof tiles) && !memcmp(maps,oldmaps,sizeof maps));
+        }
+    }
     {ntm_course_screen s={0},old=s;assert(ntm_course_screen_draw(&s,3,assets)==-1 && !memcmp(&s,&old,sizeof s));s.stamp_bytes=1;old=s;assert(ntm_course_screen_draw(&s,0,assets)==-1 && !memcmp(&s,&old,sizeof s));}
     printf("PASS native course screen: %lu producer/cache cases\n",cases);return 0;
 }

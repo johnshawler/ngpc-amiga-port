@@ -76,7 +76,7 @@ class IntroFrontendTests(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which('cc'), 'host compiler unavailable')
     def test_synthetic_application_and_private_copy(self):
-        names = 'input_state course_choice task_lifecycle task_allocation random_byte viewport game_services course_parent course_screen course_driver course_palette course_initialization course_cursor course_application course_intro course_title course_intro_application'.split()
+        names = 'input_state course_choice task_lifecycle task_allocation random_byte viewport game_services course_parent course_screen course_driver course_palette course_initialization course_cursor course_application course_intro course_title round_record round_prepare course_intro_application'.split()
         sources = [str(ROOT / 'native-game' / (name + '.c')) for name in names]
         sources += [str(ROOT / 'native-renderer' / name) for name in ('scene_renderer.c', 'tile_renderer.c')]
         for test, expected in [('test_course_intro_application', '12 real selector/owner traversals'), ('test_course_title_application', '24 real traversals')]:

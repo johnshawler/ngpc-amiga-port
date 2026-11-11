@@ -189,3 +189,28 @@ title-sanitize: | $(BUILD)
 title-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(TITLE) -o $(BUILD)/test-title-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-title-68020
+
+ROUND_PREPARE=round_prepare.c random_byte.c test_round_prepare.c
+.PHONY: round-prepare round-prepare-sanitize round-prepare-m68020
+round-prepare: | $(BUILD)
+	$(CC) $(FLAGS) $(ROUND_PREPARE) -o $(BUILD)/test-round-prepare
+	$(BUILD)/test-round-prepare
+round-prepare-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(ROUND_PREPARE) -o $(BUILD)/test-round-prepare-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-round-prepare-sanitize
+round-prepare-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c round_prepare.c -o $(BUILD)/round-prepare-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(ROUND_PREPARE) -o $(BUILD)/test-round-prepare-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-round-prepare-68020
+
+ROUND_RECORD=round_record.c course_title.c course_screen.c course_palette.c game_services.c task_allocation.c task_lifecycle.c course_choice.c input_state.c test_round_record.c
+.PHONY: round-record round-record-sanitize round-record-m68020
+round-record: | $(BUILD)
+	$(CC) $(FLAGS) $(ROUND_RECORD) -o $(BUILD)/test-round-record
+	$(BUILD)/test-round-record
+round-record-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(ROUND_RECORD) -o $(BUILD)/test-round-record-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-round-record-sanitize
+round-record-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(ROUND_RECORD) -o $(BUILD)/test-round-record-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-round-record-68020

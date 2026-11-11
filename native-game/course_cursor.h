@@ -15,7 +15,8 @@ typedef struct {
     ntm_cursor_tile_job jobs[64];
 } ntm_course_cursor_engine;
 /* One active registered object only; selector tag46/index16/animations0 or4,
- * or course-title tag38/indices20,24,28/animation0. Title headers0xc0 stop on
+ * course-title tag38/indices20,24,28/animation0, or normal round prompt
+ * tag33/index32/animation0. Stop headers0xc0 hold
  * their current frame, set flags0x42/status0x40, and retain the zero delay.
  * single-component noncollision frames, color sprites. Supports signed offsets,
  * clipping, flips, hide/freeze/restart, forced tile refresh and removal.

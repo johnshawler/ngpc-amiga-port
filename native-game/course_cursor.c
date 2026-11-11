@@ -38,6 +38,8 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
             if(c->width!=16 || (c->velocity!=0 && c->velocity!=4))return -1;
         }else if(c->tag==38) {
             if((c->width!=20 && c->width!=24 && c->width!=28) || c->velocity)return -1;
+        }else if(c->tag==33) {
+            if(c->width!=32 || c->velocity)return -1;
         }else return -1;
         anim=a->animations+c->velocity/4;
         if(!anim->data || !anim->frames || 4u*anim->frames>anim->size)return -1;
@@ -48,7 +50,7 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
         if(!(old&64)) {
             flags&=(uint8_t)~2u;delay=(uint8_t)(delay-1u);
             if(!delay) {
-                unsigned f=anim->data[frame+1];if(f!=0 && f!=128 && !(c->tag==38 && f==192))return -1;
+                unsigned f=anim->data[frame+1];if(f!=0 && f!=128 && !((c->tag==38 || c->tag==33) && f==192))return -1;
                 changed=1;
                 /* Original200d4d stops on the current frame. It sets freeze
                  * and stopped bits, leaving delay0 and frame unchanged. The
@@ -61,7 +63,7 @@ int ntm_course_cursor_tail(ntm_course_cursor_engine *e,ntm_course_cursor *c,
                 }
             }
         }
-        if(!anim->data[frame] || (anim->data[frame+1]!=0 && anim->data[frame+1]!=128 && !(c->tag==38 && anim->data[frame+1]==192)))return -1;
+        if(!anim->data[frame] || (anim->data[frame+1]!=0 && anim->data[frame+1]!=128 && !((c->tag==38 || c->tag==33) && anim->data[frame+1]==192)))return -1;
         flags|=1;if(!(old&32))flags&=(uint8_t)~1u;
         component=cursor_word(anim->data+frame+2);
         if((size_t)component+4>anim->size || !(cursor_word(anim->data+component)&32768))return -1;

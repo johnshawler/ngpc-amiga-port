@@ -37,8 +37,10 @@ index, position or flags. Nothing substitutes a pre-rendered course-title image.
 Expiry or first-fire skip resets the title display and queues the tournament
 stamp. Its short delay and subsequent wait preserve their original scheduling.
 Cleanup closes the viewport, resets owned display state, removes the child, and
-lets the owner request round-record on its next traversal. **Round-record and
-tee-shot routines remain unimplemented.** Cancel stops at the prior-selection
+lets the owner request round-record on its next traversal. **This target stops
+before round-record.** The separate
+[round-record target](round_README.md) continues to the still-unimplemented
+tee-shot request. Cancel stops at the prior-selection
 request. The standalone target begins with normal golfer 0 in bank 0 and normal
 game/input mode; it does not restore save progression or linked-player state.
 The core's mode-2 and linked-input branches have separate synthetic/original tests.
@@ -70,22 +72,25 @@ Direct word-plane composition allows all three ordinary course-title pictures
 to be displayed, without pausing tasks, extending waits or injecting state.
 
 **This is not full-speed presentation.** Rendering presents immutable earlier
-snapshots while logic continues. The ordinary runs omitted the separate scenery
-stage: their first actual course picture was the title. The modified/random run
-presented scenery, title and tournament as separate pictures. All ordinary titles
-were first shown after logic had already reached the tournament phase.
+snapshots while logic continues. The rebuilt USA and Japan runs omitted the
+separate scenery stage: their first actual course picture was the title. Germany and the
+modified/random run presented scenery, title and tournament as separate pictures.
+All ordinary titles were first shown after logic had already reached the
+tournament phase. These current title-target reruns are separate from the larger
+round target, which misses additional stages; see its own report.
 
 | Flow | Accept to first verified title | First title composition | Maximum input-poll gap |
 | --- | ---: | ---: | ---: |
-| USA | 4.80 s | 2.584 s | 38.72 ms |
-| Germany | 4.84 s | 2.624 s | 42.18 ms |
-| Japan | 4.80 s | 2.604 s | 41.30 ms |
-| Modified/random | 7.08 s | 1.302 s | 40.63 ms |
+| USA | 4.80 s | 2.584 s | 37.59 ms |
+| Germany | 5.26 s | 1.463 s | 43.45 ms |
+| Japan | 4.84 s | 2.624 s | 38.80 ms |
+| Modified/random | 7.10 s | 1.322 s | 41.86 ms |
 
-The random flow's first scenery composition was **2.484 s**, captured **5.76 s**
-after acceptance. Its shorter title composition reuses unchanged rows, so it is
-not a cold scene-creation measurement. First ordinary tournament compositions
-were 1.222, 1.342 and 1.282 seconds. Final unchanged closed frames take about
+The random flow's first scenery composition was **2.483 s**, captured **5.80 s**
+after acceptance. Germany's first scenery composition was 2.524 seconds. Their
+shorter title compositions reuse unchanged rows, so these are not cold
+scene-creation measurements. First ordinary tournament compositions
+were 1.221, 1.240 and 1.262 seconds. Final unchanged closed frames take about
 0.400 seconds; that is not initial scenery/title creation time. No unchanged
 title redraw was observed, so no steady title presentation rate is claimed.
 
@@ -105,7 +110,7 @@ both snapshot and current logical phase rather than labeling these as timely.
 
 Nine hardware-input scenarios cover ordinary acceptance for all three courses,
 random acceptance, cancel, title skip on all three courses, and double skip.
-There are **157 verified captures**, including mixed/repeated navigation and
+There are **158 verified captures**, including mixed/repeated navigation and
 actual title/tournament/transition/boundary snapshots. Each checks all 81,920
 bitplane bytes, all 256 Copper colors in both AGA nibble banks, and every captured
 RGB pixel including borders. All 512 palette bytes are independently resolved
@@ -121,10 +126,10 @@ host, ASan/UBSan and static QEMU m68020, with generic and private-copy paths.
 General direct-planar tests cover 131,072 synthetic tile rows. Scene tests retain
 the independent scalar oracle plus closed/offscreen-to-open cache transitions.
 
-The executable is **724,548 bytes**, with **722,533 ELF text bytes** and **70,792
+The executable is **728,560 bytes**, with **726,389 ELF text bytes** and **71,112
 BSS bytes**. Its ordinary 880 KiB ADF fits without requiring an HD disk. The
-explicit display allocation remains 170,000 Chip bytes. Exec reports 1,191,760
-free Chip bytes before that allocation and **1,021,760** afterward. The
+explicit display allocation remains 170,000 Chip bytes. Exec reports 1,188,096
+free Chip bytes before that allocation and **1,018,096** afterward. The
 555,120-byte selector cache stays resident. This is bounded-slice headroom, not
 proof that the remaining game or audio fits; reclaimable overlays are not implemented.
 

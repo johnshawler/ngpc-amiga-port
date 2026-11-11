@@ -2,7 +2,9 @@
 
 `course_title.c` continues the existing scenery object's `TITLE_PENDING` boundary
 through original callbacks 0x20781a..0x2079c3. It does not replace the existing
-intro ABI or implement the round-record, tee-shot, shot or hole simulation.
+intro ABI. The optional [round-record continuation](ROUND_RECORD.md) now handles
+the normal fresh-record screen; tee-shot, shot and hole simulation remain outside
+the converted boundary.
 The original outer owner remains scheduled and requests round-record only on
 its later visit after this child has actually been removed.
 

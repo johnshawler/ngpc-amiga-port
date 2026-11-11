@@ -76,12 +76,13 @@ def palette_from_cartridge(rom, completed):
     return bytes(palette)
 
 
-def verify(capture,chip,source_palette,marker_bytes=b'NSEL0001'):
+def verify(capture,chip,source_palette,marker_bytes=b'NSEL0001',report_bytes=256):
     ram=chip.read_bytes();assert len(ram)==2097152
     marker=ram.find(marker_bytes);assert marker>=0 and ram.find(marker_bytes,marker+1)<0
     w=struct.unpack_from('>48I',ram,marker)
     assert w[2]==0x52454144 and w[3]==marker and w[12]==0
-    assert marker+170000<=len(ram) and marker+256<=w[4]<=marker+256+81920
+    assert report_bytes in (256,512)
+    assert marker+170000<=len(ram) and w[4] in (marker+report_bytes,marker+report_bytes+81920)
     assert ram[w[26]:w[26]+512]==source_palette,'Source palette mismatch: target staging differs from independently resolved cartridge jobs'
     pixels=expected(ram,w);planes=bytearray(81920)
     for y in range(256):

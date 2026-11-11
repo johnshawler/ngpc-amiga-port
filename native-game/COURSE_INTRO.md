@@ -5,8 +5,9 @@ hole. `course_intro.c` converts the outer owner's accepted-result path, the
 normal golfer-record helper, and the scenery initializer through the first open
 viewport. `course_intro_application.c` integrates it with the existing selector.
 The optional [title continuation](COURSE_TITLE.md) now handles the course title,
-tournament stamp and child cleanup. Round-record and tee-shot gameplay remain
-explicitly unconverted; the scenery-only API still stops at its original boundary.
+tournament stamp and child cleanup. The optional [normal round-record path](ROUND_RECORD.md)
+continues through that screen to the tee-shot request. Tee-shot gameplay remains
+unconverted; the scenery-only API still stops at its original boundary.
 
 ## Contracts and order
 
@@ -133,5 +134,5 @@ See the separate [intro target report](../native-renderer/amiga/intro_README.md)
 for stock PAL target display, capture, timing and pacing results. The scenery
 results above alone do not validate later stages. The separate
 [title continuation](COURSE_TITLE.md) extends and verifies the distinct title
-object format, tournament transition and cleanup. Round-record and tee-shot
-routines are still outside the converted boundary.
+object format, tournament transition and cleanup. The separate [normal round-record path](ROUND_RECORD.md) extends that boundary
+to the tee-shot request without implementing later gameplay.

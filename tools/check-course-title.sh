@@ -18,7 +18,7 @@ for variant in default private; do
  fi
  cc $FLAGS $EXTRA native-game/course_intro.c $COMMON -o "build/course-title-check/native_intro_$variant.so"
  cc $FLAGS $EXTRA native-game/course_title.c $COMMON -o "build/course-title-check/native_title_$variant.so"
- cc $FLAGS $EXTRA -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c $COMMON -o "build/course-title-check/native_title_application_$variant.so"
+ cc $FLAGS $EXTRA -I native-game reference/course_intro_application_bridge.c native-game/course_intro.c native-game/course_title.c native-game/round_record.c native-game/round_prepare.c $COMMON -o "build/course-title-check/native_title_application_$variant.so"
  export NTM_INTRO_LIBRARY="$ROOT/build/course-title-check/native_intro_$variant.so"
  export NTM_TITLE_LIBRARY="$ROOT/build/course-title-check/native_title_$variant.so"
  export NTM_TITLE_APPLICATION_LIBRARY="$ROOT/build/course-title-check/native_title_application_$variant.so"
