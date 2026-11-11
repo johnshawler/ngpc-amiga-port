@@ -60,3 +60,7 @@ tools/emu.sh stop
 
 Commercial ROMs, the NGPC BIOS (needed by MAME) and Amiga Kickstart ROMs are copyrighted and must be
 supplied separately. `rom/` and `*.rom` are git-ignored.
+
+## Native recovery work
+
+The independent recovery implementation is documented in [native-renderer](native-renderer/README.md) and [native-game](native-game/README.md). The latter includes verified native input-state and course-selection routines. These tested components do not yet form a playable or full-speed game. Commercial assets remain excluded.

@@ -59,12 +59,15 @@ def main():
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--control-check', action='store_true', help='Compare native input-state routine at original boundaries')
     p.add_argument('--control-cases', action='store_true', help='Run isolated original/native input-state cases before frames')
+    p.add_argument('--course-check', action='store_true', help='Compare native course selector state/effects')
+    p.add_argument('--course-cases', action='store_true', help='Run isolated original/native course cases')
     p.add_argument('--frames', type=int, default=120)
     p.add_argument('--inputs', type=Path, help='JSON frame -> NGPC button list; absent frames release all buttons')
     p.add_argument('--epoch', type=int, default=946684800)
     p.add_argument('--state-out', type=Path)
     p.add_argument('--replay-check', type=int, default=0, help='Restore final state and compare this many additional frames')
     args = p.parse_args()
+    if args.course_check or args.course_cases:args.control_check = True
     if args.capture_every < 1:
         p.error('Capture interval must be positive')
     if args.frames < 0 or args.replay_check < 0:
@@ -189,6 +192,17 @@ def main():
                     if failures or control_count(3) != 136192:
                         raise RuntimeError('Control cases failed: %s' % failures)
                     print('PASS original/native control cases: %s' % control_count(3), file=sys.stderr)
+            if args.course_check or args.course_cases:
+                course_count = core.retro_reference_course_count
+                course_count.argtypes = [C.c_uint]
+                course_count.restype = C.c_uint64
+                if args.course_cases:
+                    cases = core.retro_reference_course_selftest
+                    cases.restype = C.c_uint64
+                    failures = cases()
+                    if failures or course_count(3) != 266240:
+                        raise RuntimeError('Course cases failed: %s' % failures)
+                    print('PASS original/native course cases: %s' % course_count(3), file=sys.stderr)
             if args.scene_check:
                 scene_count = core.retro_reference_scene_count
                 scene_count.argtypes = [C.c_uint]
@@ -213,6 +227,16 @@ def main():
                     if counts[1] or counts[2]:
                         raise RuntimeError('Native control mismatch or unsupported boundary: %s' % counts)
                     extra['control_calls'] = counts[0]
+                if args.course_check:
+                    counts = [course_count(i) for i in range(9)]
+                    if counts[1] or counts[2]:
+                        raise RuntimeError('Native course mismatch/boundary: %s' % counts)
+                    extra['course_calls'] = counts[0]
+                    extra['course_sounds'] = counts[4]
+                    extra['course_finishes'] = counts[5]
+                    extra['course_confirm'] = counts[6]
+                    extra['course_cancel'] = counts[7]
+                    extra['course_option_confirm'] = counts[8]
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
                     if counts[2] or counts[3]:
@@ -262,6 +286,8 @@ def main():
                 return dict(type='frame', frame=n, input_mask=mask, width=width, height=height, video_sha256=digest(pixels), audio_sha256=digest(audio), audio_samples=len(audio)//4, **extra)
             for frame in range(args.frames):
                 print(json.dumps(step(frame), sort_keys=True))
+            if args.course_check and args.frames and course_count(0) == 0:
+                raise RuntimeError('No course routine calls observed')
             if args.control_check and args.frames and control_count(0) == 0:
                 raise RuntimeError('No control routine calls observed')
             if args.scene_check and args.frames and scene_count(0) == 0:

@@ -14,7 +14,8 @@ case "${1:-}" in
     --event-benchmark) OUT="$ROOT/build/native-event-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH -DNR_EVENT_BENCH) ;;
     --adaptive-benchmark) OUT="$ROOT/build/native-adaptive-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH -DNR_ADAPTIVE_BENCH) ;;
     --control-benchmark) OUT="$ROOT/build/native-control-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH -DNR_CONTROL_BENCH) ;;
-    *) echo 'usage: build.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark|--adaptive-benchmark|--control-benchmark]' >&2; exit 2 ;;
+    --course-benchmark) OUT="$ROOT/build/native-course-benchmark"; EXTRA=(-DNR_SCENE -DNR_BENCH -DNR_COURSE_BENCH) ;;
+    *) echo 'usage: build.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark|--adaptive-benchmark|--control-benchmark|--course-benchmark]' >&2; exit 2 ;;
 esac
 : "${AMIGA_BIN:?Set AMIGA_BIN to official vscode-amiga-debug/bin/linux tools}"
 mkdir -p "$OUT"

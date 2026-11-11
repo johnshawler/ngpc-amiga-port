@@ -29,7 +29,7 @@ This is state-level equivalence. TLCS scratch registers, flags, stack/calling
 conventions and cycle timing are not a replacement ABI. The reference observer
 still executes the original routine and compares the native result alongside it.
 The Amiga fixture runs the native function directly, but there is not yet a native
-interactive game loop, joystick mapping, menu state machine, shot physics or
+interactive game loop, joystick mapping, complete menu state machine, shot physics or
 sound integration. These results must not be described as playable golf.
 
 ## Differential verification
@@ -102,3 +102,5 @@ Next gameplay-facing work should translate a consumer of these control-state
 outputs and verify its state transitions, then connect a native scheduler/input
 adapter. This slice supplies a tested contract for that work without pretending
 the remaining game routines have already been converted.
+
+The next verified consumer is the [native course-selection handler](COURSE_CHOICE.md), including a composed input-to-selector tick and explicit sound/finish requests.

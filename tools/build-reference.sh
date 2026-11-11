@@ -11,7 +11,9 @@ case "${1:-}" in
   --scene) MODE=scene; OUT="$OUT/scene" ;;
   --control) MODE=control; OUT="$OUT/control" ;;
   --control-probe) MODE=control-probe; OUT="$OUT/control-probe" ;;
-  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe]" >&2; exit 2 ;;
+  --consumer-probe) MODE=consumer-probe; OUT="$OUT/consumer-probe" ;;
+  --course) MODE=course; OUT="$OUT/course" ;;
+  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe|--consumer-probe|--course]" >&2; exit 2 ;;
 esac
 [ "$(git -C "$SRC" rev-parse HEAD)" = "$PIN" ] || { echo 'Incorrect reference-core pin' >&2; exit 1; }
 mkdir -p "$OUT"
@@ -47,18 +49,23 @@ source=source.replace(state,'   if(load){nr_event_invalidate_all(&event_cache);n
 p.write_text(source)
 PYHOOK
 fi
+if [ "$MODE" = consumer-probe ]; then
+    python3 "$ROOT/reference/consumer-probe.py" "$STAGE/core-source"
+fi
 if [ "$MODE" = control-probe ]; then
     python3 "$ROOT/reference/control-probe.py" "$STAGE/core-source"
 fi
-if [ "$MODE" = control ]; then
-    cp "$ROOT/native-game/input_state.c" "$ROOT/native-game/input_state.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
-    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" <<'PYCONTROL'
+if [ "$MODE" = control ] || [ "$MODE" = course ]; then
+    cp "$ROOT/native-game/input_state.c" "$ROOT/native-game/input_state.h" "$ROOT/native-game/course_choice.c" "$ROOT/native-game/course_choice.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
+    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" <<'PYCONTROL'
 from pathlib import Path
 import sys
 p=Path(sys.argv[1]);s=p.read_text()
 a='int32 TLCS900h_interpret(void)\n{'
 assert s.count(a)==1
-s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+a+'\n    reference_control_before();')
+extra=Path(sys.argv[4]).read_text() if sys.argv[3]=='course' else ''
+call='reference_course_before();' if extra else ''
+s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+extra+'\n'+a+'\n    reference_control_before();'+call)
 p.write_text(s)
 PYCONTROL
 fi

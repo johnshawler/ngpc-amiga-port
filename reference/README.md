@@ -102,3 +102,5 @@ Native control-state comparison: `tools/build-reference.sh --control` and
 `run.py --control-check` observe the original input-state routine. Optional
 `--control-cases` runs isolated original/native differential cases before frames.
 See `native-game/README.md` for scope, exactness gates and target timing limits.
+
+Course consumer: `tools/build-reference.sh --course`, `run.py --course-check --course-cases`, and `compare_course_trace.py`. See `native-game/COURSE_CHOICE.md` for external-service boundaries and live branch coverage.
