@@ -2,6 +2,7 @@
 #include "random_byte.c"
 #include "viewport.c"
 #include "game_services.c"
+#include "course_screen.c"
 #include "course_parent.c"
 static uint64_t parent_cases;
 static int parent_renderer(ntm_task_context *c,ntm_task *t){(void)c;(void)t;

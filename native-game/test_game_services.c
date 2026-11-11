@@ -55,7 +55,12 @@ int main(void)
     }
     for(seed=0;seed<256;seed++)for(mode=1;mode<4;mode++)for(slot=0;slot<2;slot++) {
         ntm_task n[5]={{0}};ntm_task_context c={0};ntm_course_parent_state s={0};
-        ntm_service54_state queue={0};ntm_display_reset_state display;uint8_t table[256],payload[9],cursor=(uint8_t)seed;unsigned calls=0;int request;
+        ntm_service54_state queue={0};ntm_display_reset_state display;
+        ntm_course_screen screen={0};ntm_screen_asset assets[3];unsigned draws=0;
+        uint8_t screen_asset[]={1,0,0,0,0,0,0,0,129,0,0,255,255},screen_pixels[16];
+        memset(screen.fill_status,255,8);memset(screen_pixels,255,sizeof screen_pixels);
+        for(i=0;i<3;i++){assets[i].data=screen_asset;assets[i].size=sizeof screen_asset;assets[i].tiles=screen_pixels;assets[i].tiles_size=sizeof screen_pixels;}
+        uint8_t table[256],payload[9],cursor=(uint8_t)seed;unsigned calls=0;int request;
         for(i=0;i<256;i++)table[i]=(uint8_t)(i*73+seed);
         for(i=0;i<9;i++)payload[i]=(uint8_t)(i*31+seed);
         for(i=0;i<8;i++)queue.slots[i]=(uint16_t)((slot?0x2000:0x8000)|i*4);
@@ -74,10 +79,27 @@ int main(void)
                 else if(request==NTM_PARENT_COURSE_SETUP)request=ntm_course_parent_setup(&c,n,&s);
                 else if(request==NTM_PARENT_SERVICE54)request=ntm_course_parent_service54(&c,n,&s,&queue,payload);
                 else if(request==NTM_PARENT_EXIT)request=ntm_course_parent_exit(&c,n,&s,&display);
-                else {assert(request==NTM_PARENT_RENDER || request==NTM_PARENT_SOUND_ZERO || request==NTM_PARENT_SOUND_ONE || request==NTM_PARENT_SOUND_TWO);request=ntm_course_parent_resume(&c,n,&s);}
+                else if(request==NTM_PARENT_RENDER){draws++;request=ntm_course_parent_render(&c,n,&s,&screen,assets);}
+                else {assert(request==NTM_PARENT_SOUND_ZERO || request==NTM_PARENT_SOUND_ONE || request==NTM_PARENT_SOUND_TWO);request=ntm_course_parent_resume(&c,n,&s);}
             }
-            assert(request==0);calls++;assert(calls<200);
+            assert(request==0);
+            assert(!ntm_course_screen_fill_queue(&screen,maps));
+            assert(!ntm_course_screen_stamp_queue(&screen,tiles,maps));
+            calls++;assert(calls<200);
         }while(s.phase!=NTM_PARENT_DONE);
+        /* Actual native course producer -> shared queues -> compositor -> AGA
+         * planar buffer, using an authored one-tile label asset. */
+        {
+            nr_scene scene={0};nr_bitmap b={bitmap,sizeof bitmap,160,152,20};uint8_t row[160];unsigned x,plane;
+            scene.tiles=tiles;scene.maps=maps;scene.sprites=sprites;scene.sprite_pal=pal;scene.window_w=160;scene.window_h=152;
+            assert(!nr_scene_row(&scene,96,row));assert(!nr_store_scene_row_packed(&b,96,row));
+            for(x=0;x<160;x++) {
+                unsigned pen=(x>=screen.cursor_x && x<(unsigned)screen.cursor_x+8)?67:240;
+                assert(row[x]==pen);
+                for(plane=0;plane<8;plane++)assert(((bitmap[plane*3040+96*20+x/8]>>(7-x%8))&1)==((pen>>plane)&1));
+            }
+        }
+        assert(draws==(mode==3?31u:1u));
         assert(calls==(mode==1?32u:mode==2?13u:92u) && n[4].result==(mode==2?252:0));
         assert(c.current==n+1 && n[1].next==n+1 && n[1].previous==n+1);
         assert(c.free_head==(seed&1?n+2:n) && s.finish_outcome==(seed&1?NTM_TASK_UNLINKED:NTM_TASK_RECYCLED));

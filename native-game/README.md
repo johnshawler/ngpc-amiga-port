@@ -104,3 +104,9 @@ adapter. This slice supplies a tested contract for that work without pretending
 the remaining game routines have already been converted.
 
 The next verified consumer is the [native course-selection handler](COURSE_CHOICE.md), including a composed input-to-selector tick and explicit sound/finish requests.
+
+## Course-screen integration
+
+See [COURSE_SCREEN.md](COURSE_SCREEN.md) for the native deferred drawing queues,
+course-label tile/map loader, parent render adapter and original comparisons.
+This advances real drawing; complete interactive application/audio remain unfinished.

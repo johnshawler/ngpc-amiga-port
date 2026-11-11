@@ -1,5 +1,9 @@
 # Native viewport, setup, queued-object and exit services
 
+Later integration: [COURSE_SCREEN.md](COURSE_SCREEN.md) adds native deferred
+course-label drawing and the parent render adapter. The older measurements and
+stubbed reference-flow tests described below retain their original scope.
+
 This checkpoint converts four additional game services and connects viewport
 state to the native planar compositor. It preserves the previous recovery
 checkpoints. It is not a playable game or a recovery of the former lost runtime.

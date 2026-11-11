@@ -1,5 +1,9 @@
 # Native parent timers and randomized selection
 
+Later integration: [COURSE_SCREEN.md](COURSE_SCREEN.md) adds native deferred
+course-label drawing and the parent render adapter. The older measurements and
+stubbed reference-flow tests described below retain their original scope.
+
 This checkpoint extends the native parent state machine through its timers and
 complete modified-confirm selection sequence. It remains an independent
 reimplementation with explicit rendering/audio/setup service boundaries, not a

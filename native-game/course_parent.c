@@ -147,3 +147,14 @@ int ntm_course_parent_exit(ntm_task_context *context,ntm_task *parent,
     if(ntm_display_reset(display)<0)return -1;
     return ntm_course_parent_resume(context,parent,state);
 }
+
+int ntm_course_parent_render(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,ntm_course_screen *screen,const ntm_screen_asset assets[3])
+{
+    if(!context || !parent || !state ||
+       (state->phase!=NTM_PARENT_CANCEL_RENDER && state->phase!=NTM_PARENT_ACCEPT_RENDER && state->phase!=NTM_PARENT_RANDOM_RENDER))return -1;
+    if((state->phase==NTM_PARENT_CANCEL_RENDER && !state->cancel_delay_callback) ||
+       (state->phase==NTM_PARENT_ACCEPT_RENDER && !state->accept_delay_callback))return -1;
+    if(ntm_course_screen_draw(screen,context->selection,assets)<0)return -1;
+    return ntm_course_parent_resume(context,parent,state);
+}

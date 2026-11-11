@@ -5,6 +5,7 @@
 #include "random_byte.h"
 #include "viewport.h"
 #include "game_services.h"
+#include "course_screen.h"
 enum {NTM_PARENT_NONE=0,NTM_PARENT_SOUND_ZERO=1,NTM_PARENT_SOUND_ONE=2,
       NTM_PARENT_RENDER=3,NTM_PARENT_RANDOM=4,NTM_PARENT_SOUND_TWO=5,
       NTM_PARENT_FADE=6,NTM_PARENT_COURSE_SETUP=7,NTM_PARENT_SERVICE54=8,NTM_PARENT_EXIT=9};
@@ -62,4 +63,8 @@ int ntm_course_parent_service54(ntm_task_context *context,ntm_task *parent,
     ntm_course_parent_state *state,ntm_service54_state *queue,const uint8_t payload[9]);
 int ntm_course_parent_exit(ntm_task_context *context,ntm_task *parent,
     ntm_course_parent_state *state,ntm_display_reset_state *display);
+/* Produce actual course-screen drawing jobs, then resume the pending parent.
+ * Caller drains the shared queues at their normal scheduling boundary. */
+int ntm_course_parent_render(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,ntm_course_screen *screen,const ntm_screen_asset assets[3]);
 #endif

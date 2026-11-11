@@ -30,5 +30,7 @@ jobs:
         run: bash tools/build-reference.sh --lifecycle
       - name: Build native allocation and course-parent comparison
         run: bash tools/build-reference.sh --parent
+      - name: Build isolated course-screen reference probe
+        run: bash tools/build-reference.sh --screen-probe
       - name: Run source and no-cartridge reference checks
         run: python3 -m unittest discover -s tests -v

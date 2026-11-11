@@ -15,8 +15,9 @@ case "${1:-}" in
   --course) MODE=course; OUT="$OUT/course" ;;
   --lifecycle) MODE=lifecycle; OUT="$OUT/lifecycle" ;;
   --allocation) MODE=allocation; OUT="$OUT/allocation" ;;
+  --screen-probe) MODE=screen-probe; OUT="$OUT/screen-probe" ;;
   --parent) MODE=parent; OUT="$OUT/parent" ;;
-  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe|--consumer-probe|--course|--lifecycle|--allocation|--parent]" >&2; exit 2 ;;
+  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe|--consumer-probe|--course|--lifecycle|--allocation|--parent|--screen-probe]" >&2; exit 2 ;;
 esac
 [ "$(git -C "$SRC" rev-parse HEAD)" = "$PIN" ] || { echo 'Incorrect reference-core pin' >&2; exit 1; }
 mkdir -p "$OUT"
@@ -67,7 +68,7 @@ if [ "$MODE" = control ] || [ "$MODE" = course ] || [ "$MODE" = lifecycle ] || [
         cp "$ROOT/native-game/task_allocation.c" "$ROOT/native-game/task_allocation.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
     fi
     if [ "$MODE" = parent ]; then
-        cp "$ROOT/native-game/game_services.c" "$ROOT/native-game/game_services.h" "$ROOT/native-game/viewport.c" "$ROOT/native-game/viewport.h" "$ROOT/native-game/random_byte.c" "$ROOT/native-game/random_byte.h" "$ROOT/native-game/course_parent.c" "$ROOT/native-game/course_parent.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
+        cp "$ROOT/native-game/course_screen.c" "$ROOT/native-game/course_screen.h" "$ROOT/native-game/game_services.c" "$ROOT/native-game/game_services.h" "$ROOT/native-game/viewport.c" "$ROOT/native-game/viewport.h" "$ROOT/native-game/random_byte.c" "$ROOT/native-game/random_byte.h" "$ROOT/native-game/course_parent.c" "$ROOT/native-game/course_parent.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
     fi
     python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" "$ROOT/reference/lifecycle-check.c.inc" "$ROOT/reference/allocation-check.c.inc" "$ROOT/reference/parent-check.c.inc" "$ROOT/reference/continuation-check.c.inc" "$ROOT/reference/service-check.c.inc" <<'PYCONTROL'
 from pathlib import Path
@@ -89,6 +90,9 @@ if sys.argv[3]=='parent':
 s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+extra+'\n'+a+'\n    reference_control_before();'+call)
 p.write_text(s)
 PYCONTROL
+fi
+if [ "$MODE" = screen-probe ]; then
+    cat "$ROOT/reference/screen-probe.c.inc" >> "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c"
 fi
 export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=946684800
 make -C "$STAGE/core-source" -j"${JOBS:-2}" platform=unix CC=gcc CXX=g++ GIT_VERSION='" a50d5ac"' > "$STAGE/build.log" 2>&1 || {

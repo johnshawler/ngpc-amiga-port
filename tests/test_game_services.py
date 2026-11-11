@@ -9,7 +9,7 @@ class GameServiceTests(unittest.TestCase):
   if not cc or not shutil.which(cc[0]):self.skipTest('Compiler unavailable')
   with tempfile.TemporaryDirectory() as d:
    exe=str(Path(d)/'test')
-   files=['input_state.c','course_choice.c','task_lifecycle.c','task_allocation.c','random_byte.c','viewport.c','game_services.c','course_parent.c','render_bridge.c','test_game_services.c']
+   files=['input_state.c','course_choice.c','task_lifecycle.c','task_allocation.c','random_byte.c','viewport.c','game_services.c','course_parent.c','course_screen.c','render_bridge.c','test_game_services.c']
    subprocess.run(cc+['-std=c99','-O2','-Wall','-Wextra','-Werror']+[str(ROOT/'native-game'/f) for f in files]+[str(ROOT/'native-renderer'/f) for f in ['scene_renderer.c','tile_renderer.c']]+['-o',exe],check=True)
    r=subprocess.run([exe],capture_output=True,text=True,check=True);self.assertIn('102400',r.stdout);self.assertIn('1536',r.stdout)
  def fixture(self):

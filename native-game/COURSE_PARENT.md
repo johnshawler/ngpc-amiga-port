@@ -1,5 +1,9 @@
 # Native allocation and initial course-parent transitions
 
+Later integration: [COURSE_SCREEN.md](COURSE_SCREEN.md) adds native deferred
+course-label drawing and the parent render adapter. The older measurements and
+stubbed reference-flow tests described below retain their original scope.
+
 This extends the independent native reimplementation. It does not recover the
 former lost runtime or make the game playable. No original assets are included.
 
