@@ -4,7 +4,8 @@ The optional `nr_scene_row_cached` path retains the original uncached compositor
 as a baseline. It resolves relative sprite chains once per changed sprite state
 and prepares a compact painter-order list for each visible row/priority. A sprite
 appears in at most eight lists, so the complete entry pool is bounded to 512 bytes.
-The full caller-owned cache occupies 2,144 bytes in the verified 68020 build.
+The caller-owned struct is 2,142 bytes under the verified 68020 ABI; the standalone
+fixture rounds its static BSS allocation to 2,144 bytes.
 
 Every active row compares all 256 sprite bytes, all 64 sprite-palette bytes and
 the two global sprite offsets. Any change rebuilds the lists before drawing.

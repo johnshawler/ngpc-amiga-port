@@ -57,4 +57,15 @@ typedef struct {
 } nr_planar_cache;
 void nr_planar_cache_init(nr_planar_cache *cache);
 int nr_store_scene_row_dirty(nr_bitmap *dst,unsigned y,const uint8_t pens[160],nr_planar_cache *cache);
+/* Exact dependency cache for composed rows, independent of palette RGB values.
+ * Keys contain live window/scroll state and every visible descriptor/tile row.
+ * No hashes or frame-latch assumption. Initialize once; inputs/output disjoint. */
+typedef struct {
+    nr_scene_cache sprites;
+    uint8_t keys[152][768], pixels[152][160];
+    uint16_t lengths[152];
+    uint32_t composed_rows,reused_rows;
+} nr_composition_cache;
+void nr_composition_cache_init(nr_composition_cache *cache);
+int nr_scene_row_reused(const nr_scene *scene,unsigned y,uint8_t out[160],nr_composition_cache *cache);
 #endif

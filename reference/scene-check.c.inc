@@ -4,6 +4,7 @@
 #include "scene_renderer.c"
 static nr_scene_cache sprite_cache; /* static zero initialization = invalid */
 static nr_planar_cache planar_cache;
+static nr_composition_cache composition_cache;
 static uint8_t scalar_bitmap[24320],dirty_bitmap[24320];
 static uint64_t scene_rows, scene_pixels, scene_mismatches, scene_skipped;
 __attribute__((visibility("default")))
@@ -14,13 +15,14 @@ uint64_t retro_reference_scene_count(unsigned n)
         case 2:return scene_mismatches; case 3:return scene_skipped;
         case 4:return sprite_cache.rebuilds; case 5:return sprite_cache.hits;
         case 6:return planar_cache.converted_blocks; case 7:return planar_cache.skipped_blocks;
+        case 8:return composition_cache.composed_rows; case 9:return composition_cache.reused_rows;
         default:return 0;
     }
 }
 static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
 {
     nr_scene s;
-    uint8_t pens[160],cached[160];
+    uint8_t pens[160],cached[160],reused[160];
     unsigned x,p;
     nr_bitmap scalar={scalar_bitmap,sizeof scalar_bitmap,160,152,20};
     nr_bitmap dirty={dirty_bitmap,sizeof dirty_bitmap,160,152,20};
@@ -36,6 +38,8 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
     if(nr_scene_row(&s,gfx->raster_line,pens)) {scene_skipped++;return;}
     if(nr_scene_row_cached(&s,gfx->raster_line,cached,&sprite_cache)) {scene_skipped++;return;}
     for(x=0;x<160;x++)if(cached[x]!=pens[x])scene_mismatches++;
+    if(nr_scene_row_reused(&s,gfx->raster_line,reused,&composition_cache)) {scene_skipped++;return;}
+    for(x=0;x<160;x++)if(reused[x]!=pens[x])scene_mismatches++;
     nr_store_scene_row(&scalar,gfx->raster_line,pens);
     nr_store_scene_row_dirty(&dirty,gfx->raster_line,cached,&planar_cache);
     for(p=0;p<8;p++)for(x=0;x<20;x++) {

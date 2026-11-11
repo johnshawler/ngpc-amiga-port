@@ -1,5 +1,5 @@
 """Independent destination-pixel/depth oracle for the synthetic AGA scene."""
-def expected_pixels():
+def expected_pixels(scroll0=251):
     tiles=bytes(((i*37)^(i>>3))&255 for i in range(8192))
     maps=[(i&511)|(((i//7)&15)<<9)|(0x8000 if i&1 else 0)|(0x4000 if i&2 else 0) for i in range(2048)]
     def texel(d,x,y):
@@ -25,7 +25,7 @@ def expected_pixels():
             if 3<=x<157 and 2<=y<149:
                 pen=242
                 for n in range(2):
-                    sx=(x+[251,7][n])&255;sy=(y+[253,19][n])&255
+                    sx=(x+[scroll0,7][n])&255;sy=(y+[253,19][n])&255
                     d=maps[n*1024+(sy//8)*32+sx//8];t=texel(d,sx%8,sy%8)
                     z=3+2*n
                     if t and z>depth:pen=64+n*64+((d>>9)&15)*4+t;depth=z

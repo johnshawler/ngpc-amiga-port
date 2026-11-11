@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+static nr_composition_cache memo;
 static uint32_t seed=0x12345678;
 static uint8_t random8(void) { seed=seed*1664525u+1013904223u; return seed>>24; }
 static unsigned word(const uint8_t *p) { return p[0]+256u*p[1]; }
@@ -51,7 +52,7 @@ int main(void)
     static uint8_t bitmap[24*152*8];
     nr_bitmap dst={bitmap,sizeof bitmap,160,152,24};
     nr_scene s; nr_scene_cache cache; uint8_t cached[160]; unsigned iteration,i,y,p,x;
-    nr_scene_cache_init(&cache);
+    nr_scene_cache_init(&cache);nr_composition_cache_init(&memo);
     memset(&s,0,sizeof s);s.tiles=tiles;s.maps=maps;s.sprites=sprites;s.sprite_pal=pal;
     for(i=0;i<sizeof tiles;i++) tiles[i]=random8();
     for(iteration=0;iteration<4000;iteration++) {
@@ -68,6 +69,8 @@ int main(void)
         assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
         assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
         assert(cache.offsets[456]<=512);
+        assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
+        assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
         memset(bitmap,0xa5,sizeof bitmap);assert(nr_store_scene_row(&dst,y,actual)==0);
         for(p=0;p<8;p++) for(i=0;i<152;i++) for(x=0;x<24;x++) {
             unsigned value=0xa5;
@@ -97,9 +100,12 @@ int main(void)
             assert(memcmp(actual,expected,160)==0);
             assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
             assert(cache.offsets[456]<=512);
+        assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
+        assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
         }
     }
     assert(cache.hits>0 && cache.rebuilds>0);
+    assert(memo.composed_rows>0 && memo.reused_rows>0);
     /* Change every sprite byte/palette byte independently between cached rows. */
     s.window_x=0;s.window_y=0;s.window_w=160;s.window_h=152;
     for(i=0;i<320;i++) {
@@ -107,9 +113,29 @@ int main(void)
         for(y=0;y<152;y++) {
             oracle(&s,y,expected);assert(nr_scene_row_cached(&s,y,cached,&cache)==0);
             assert(memcmp(cached,expected,160)==0);
+            assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
         }
     }
+    /* Every character row byte can invalidate a visible plane dependency. */
+    memset(sprites,0,sizeof sprites);s.scroll_x[0]=s.scroll_x[1]=0;s.scroll_y[0]=s.scroll_y[1]=0;
+    s.sprite_x=s.sprite_y=0;
+    for(i=0;i<512;i++) {
+        unsigned m,byte;
+        for(m=0;m<2048;m++){maps[m*2]=(uint8_t)i;maps[m*2+1]=(uint8_t)(i>>8);}
+        for(y=0;y<8;y++)for(byte=0;byte<2;byte++) {
+            assert(nr_scene_row(&s,y,expected)==0);assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
+            tiles[i*16+y*2+byte]^=0x55;
+            assert(nr_scene_row(&s,y,expected)==0);assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
+        }
+    }
+    /* Maximum key: 42 visible plane tiles and all 64 sprites on one row. */
+    s.scroll_x[0]=s.scroll_x[1]=1;
+    for(i=0;i<64;i++){sprites[i*4]=0;sprites[i*4+1]=0x18;sprites[i*4+2]=sprites[i*4+3]=0;}
+    assert(nr_scene_row(&s,0,expected)==0);assert(nr_scene_row_reused(&s,0,cached,&memo)==0);
+    assert(memcmp(cached,expected,160)==0);assert(memo.lengths[0]==758);
     memset(actual,0xa5,sizeof actual);assert(nr_scene_row(&s,152,actual)==-1);
+    assert(nr_scene_row_reused(&s,152,actual,&memo)==-1);
+    assert(nr_scene_row_reused(&s,0,actual,NULL)==-1);
     assert(nr_scene_row_cached(&s,152,actual,&cache)==-1);
     assert(nr_scene_row_cached(&s,0,actual,NULL)==-1);
     assert(nr_scene_row(NULL,0,actual)==-1);s.tiles=NULL;

@@ -8,6 +8,8 @@
 #ifdef NR_BENCH
 #ifdef NR_PLANAR_BENCH
 #include "planar_benchmark.inc"
+#elif defined(NR_COMPOSITION_BENCH)
+#include "composition_benchmark.inc"
 #else
 #include "benchmark.inc"
 #endif

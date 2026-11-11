@@ -197,3 +197,62 @@ int nr_store_scene_row_dirty(nr_bitmap *d,unsigned y,const uint8_t pens[160],nr_
     }
     return 0;
 }
+
+void nr_composition_cache_init(nr_composition_cache *c)
+{
+    unsigned y;if(!c)return;
+    nr_scene_cache_init(&c->sprites);
+    for(y=0;y<152;y++)c->lengths[y]=0;
+    c->composed_rows=0;c->reused_rows=0;
+}
+static void key16(uint8_t **p,unsigned value)
+{*(*p)++=(uint8_t)value;*(*p)++=(uint8_t)(value>>8);}
+static unsigned scene_key(const nr_scene *s,unsigned y,nr_scene_cache *c,uint8_t *key)
+{
+    uint8_t *p=key;unsigned n,col,depth;
+    *p++=s->window_x;*p++=s->window_y;*p++=s->window_w;*p++=s->window_h;
+    *p++=s->scroll_x[0];*p++=s->scroll_y[0];*p++=s->scroll_x[1];*p++=s->scroll_y[1];
+    *p++=s->swap;*p++=s->background;*p++=s->outside;
+    if(y<s->window_y || y>=(unsigned)s->window_y+s->window_h)return (unsigned)(p-key);
+    for(n=0;n<2;n++) {
+        unsigned sy=(y+s->scroll_y[n])&255;
+        for(col=0;col<32;col++) {
+            int x=(int)((col*8-s->scroll_x[n])&255);
+            unsigned d,row;
+            if(x>248)x-=256;
+            if(x>=160 || x>=(int)s->window_x+s->window_w || x+8<=s->window_x)continue;
+            d=le16(s->maps+n*2048+((sy/8)*32+col)*2);row=sy&7;
+            if(d&0x4000)row=7-row;
+            key16(&p,d);key16(&p,le16(s->tiles+(d&511)*16+row*2));
+        }
+    }
+    prepare_sprites(s,c);
+    for(depth=1;depth<=3;depth++) {
+        unsigned bucket=y*3+depth-1,i;
+        *p++=(uint8_t)(c->offsets[bucket+1]-c->offsets[bucket]);
+        for(i=c->offsets[bucket];i<c->offsets[bucket+1];i++) {
+            unsigned j=c->entries[i],d=c->desc[j],row=y-c->y[j];
+            if(d&0x4000)row=7-row;
+            key16(&p,d);key16(&p,(unsigned)c->x[j]);key16(&p,(unsigned)c->y[j]);
+            *p++=s->sprite_pal[j];key16(&p,le16(s->tiles+(d&511)*16+row*2));
+        }
+    }
+    /* At most 42 visible plane tiles x4, 64 sprites x9, 11 regs +3 counts:
+     * 758 bytes. Exact byte keys avoid collision-based stale rendering. */
+    return (unsigned)(p-key);
+}
+int nr_scene_row_reused(const nr_scene *s,unsigned y,uint8_t out[160],nr_composition_cache *c)
+{
+    uint8_t key[768];unsigned length,i,changed;
+    if(!s || !out || !c || !s->tiles || !s->maps || !s->sprites || !s->sprite_pal || y>=152)return -1;
+    length=scene_key(s,y,&c->sprites,key);
+    changed=length!=c->lengths[y];
+    if(!changed)for(i=0;i<length;i++)if(key[i]!=c->keys[y][i]){changed=1;break;}
+    if(changed) {
+        nr_scene_row_cached(s,y,c->pixels[y],&c->sprites);
+        for(i=0;i<length;i++)c->keys[y][i]=key[i];
+        c->lengths[y]=(uint16_t)length;c->composed_rows++;
+    } else c->reused_rows++;
+    for(i=0;i<160;i++)out[i]=c->pixels[y][i];
+    return 0;
+}

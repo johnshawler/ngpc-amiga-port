@@ -205,6 +205,8 @@ def main():
                     extra['sprite_cache_hits'] = scene_count(5)
                     extra['planar_converted_blocks'] = scene_count(6)
                     extra['planar_skipped_blocks'] = scene_count(7)
+                    extra['composed_rows'] = scene_count(8)
+                    extra['reused_rows'] = scene_count(9)
                 if args.snapshot_dir:
                     size = export(None, 0)
                     if size != 32876:
