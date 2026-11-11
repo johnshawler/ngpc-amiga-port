@@ -4,6 +4,10 @@ static void fill_scene(uint8_t *bitmap,uint8_t *tiles)
 {
     uint8_t *maps=tiles+8192,*sprites=maps+4096,*pal=sprites+256;
     uint8_t row[160];unsigned i,y,x,p;
+#ifdef NR_CACHED
+    static nr_scene_cache cache;
+    nr_scene_cache_init(&cache);
+#endif
     nr_scene s={tiles,maps,sprites,pal,{251,7},{253,19},249,250,3,2,154,147,1,2,5};
     for(i=0;i<8192;i++)tiles[i]=(uint8_t)((i*37u)^(i>>3));
     for(i=0;i<2048;i++) {
@@ -17,7 +21,11 @@ static void fill_scene(uint8_t *bitmap,uint8_t *tiles)
         pal[i]=(uint8_t)(i&15);
     }
     for(y=0;y<152;y++) {
+#ifdef NR_CACHED
+        nr_scene_row_cached(&s,y,row,&cache);
+#else
         nr_scene_row(&s,y,row);
+#endif
         for(x=0;x<160;x++) for(p=0;p<8;p++)
             if(row[x]&(1u<<p))bitmap[p*10240+(y+52)*40+(x+80)/8]|=(uint8_t)(128u>>((x+80)&7));
     }

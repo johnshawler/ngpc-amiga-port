@@ -50,7 +50,8 @@ int main(void)
     uint8_t tiles[8192],maps[4096],sprites[256],pal[64],actual[160],expected[160];
     static uint8_t bitmap[24*152*8];
     nr_bitmap dst={bitmap,sizeof bitmap,160,152,24};
-    nr_scene s; unsigned iteration,i,y,p,x;
+    nr_scene s; nr_scene_cache cache; uint8_t cached[160]; unsigned iteration,i,y,p,x;
+    nr_scene_cache_init(&cache);
     memset(&s,0,sizeof s);s.tiles=tiles;s.maps=maps;s.sprites=sprites;s.sprite_pal=pal;
     for(i=0;i<sizeof tiles;i++) tiles[i]=random8();
     for(iteration=0;iteration<4000;iteration++) {
@@ -64,6 +65,9 @@ int main(void)
         s.background=random8();s.outside=random8();y=iteration%152;
         oracle(&s,y,expected);assert(nr_scene_row(&s,y,actual)==0);
         assert(memcmp(actual,expected,160)==0);
+        assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
+        assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
+        assert(cache.offsets[456]<=512);
         memset(bitmap,0xa5,sizeof bitmap);assert(nr_store_scene_row(&dst,y,actual)==0);
         for(p=0;p<8;p++) for(i=0;i<152;i++) for(x=0;x<24;x++) {
             unsigned value=0xa5;
@@ -91,9 +95,23 @@ int main(void)
         for(y=0;y<16;y++) {
             oracle(&s,y,expected);assert(nr_scene_row(&s,y,actual)==0);
             assert(memcmp(actual,expected,160)==0);
+            assert(nr_scene_row_cached(&s,y,cached,&cache)==0);assert(memcmp(cached,expected,160)==0);
+            assert(cache.offsets[456]<=512);
+        }
+    }
+    assert(cache.hits>0 && cache.rebuilds>0);
+    /* Change every sprite byte/palette byte independently between cached rows. */
+    s.window_x=0;s.window_y=0;s.window_w=160;s.window_h=152;
+    for(i=0;i<320;i++) {
+        if(i<256)sprites[i]^=0x55;else pal[i-256]^=0x55;
+        for(y=0;y<152;y++) {
+            oracle(&s,y,expected);assert(nr_scene_row_cached(&s,y,cached,&cache)==0);
+            assert(memcmp(cached,expected,160)==0);
         }
     }
     memset(actual,0xa5,sizeof actual);assert(nr_scene_row(&s,152,actual)==-1);
+    assert(nr_scene_row_cached(&s,152,actual,&cache)==-1);
+    assert(nr_scene_row_cached(&s,0,actual,NULL)==-1);
     assert(nr_scene_row(NULL,0,actual)==-1);s.tiles=NULL;
     assert(nr_scene_row(&s,0,actual)==-1);for(i=0;i<160;i++)assert(actual[i]==0xa5);
     memset(bitmap,0xa5,sizeof bitmap);dst.capacity--;

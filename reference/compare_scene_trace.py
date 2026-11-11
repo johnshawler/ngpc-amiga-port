@@ -20,6 +20,7 @@ def compare(original, observed, repeated):
         b = dict(b)
         if b.pop('scene_rows', None) != (n+1)*152 or b.pop('scene_pixels', None) != (n+1)*152*160:
             raise ValueError('Incomplete scanline coverage')
+        b.pop('sprite_cache_rebuilds', None); b.pop('sprite_cache_hits', None)
         if a != b or a.get('frame') != n or a.get('type') != 'frame':
             raise ValueError('Frame video/audio/input mismatch')
     if original[-1] != observed[-1] or original[-1].get('type') != 'state' or original[-1].get('after_frames') != frames:

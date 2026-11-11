@@ -6,7 +6,8 @@ EXTRA=()
 case "${1:-}" in
     '') ;;
     --scene) OUT="$ROOT/build/native-scene-display"; EXTRA=(-DNR_SCENE) ;;
-    *) echo 'usage: build.sh [--scene]' >&2; exit 2 ;;
+    --cached) OUT="$ROOT/build/native-cached-display"; EXTRA=(-DNR_SCENE -DNR_CACHED) ;;
+    *) echo 'usage: build.sh [--scene|--cached]' >&2; exit 2 ;;
 esac
 : "${AMIGA_BIN:?Set AMIGA_BIN to official vscode-amiga-debug/bin/linux tools}"
 mkdir -p "$OUT"

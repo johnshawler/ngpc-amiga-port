@@ -23,6 +23,22 @@ typedef struct {
  * No allocations, depth buffer, CPU emulation or ROM access.
  */
 int nr_scene_row(const nr_scene *scene, unsigned y, uint8_t out[160]);
+/* Optional caller-owned cache: initialize with nr_scene_cache_init. Cache is
+ * private to one rendering stream. Content comparison invalidates automatically
+ * after ANY sprite descriptor, position, palette or global offset change.
+ * Tile/maps/window/scroll are read live on each row. No frame-latch assumption. */
+typedef struct {
+    uint16_t offsets[457]; /* 152 rows x 3 priorities, plus terminal offset */
+    uint8_t entries[512];  /* each of 64 sprites occupies at most eight rows */
+    int16_t x[64], y[64];
+    uint16_t desc[64];
+    uint8_t raw[320], sx, sy, valid;
+    uint32_t rebuilds, hits;
+} nr_scene_cache;
+void nr_scene_cache_init(nr_scene_cache *cache);
+int nr_scene_row_cached(const nr_scene *scene, unsigned y, uint8_t out[160],
+                        nr_scene_cache *cache);
+
 /* Store one pen row in a 160x152 eight-plane Amiga bitmap, stride >=20/even.
  * Other rows and stride padding are untouched. */
 int nr_store_scene_row(nr_bitmap *dst, unsigned y, const uint8_t pens[160]);

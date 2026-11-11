@@ -33,4 +33,12 @@ class SceneCaptureTests(unittest.TestCase):
    path=Path(d)/'bad.bin';path.write_bytes(raw)
    command[command.index('--chip')+1]=str(path)
    self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)
+CACHED=ROOT/'build/native-cached-display'
+@unittest.skipUnless((CACHED/'chip.bin').exists() and (CACHED/'screen.ppm').exists(),'Run cached Amiga scene first')
+class CachedCaptureTests(unittest.TestCase):
+ def test_cached_scene_capture(self):
+  command=[sys.executable,str(ROOT/'native-renderer/amiga/verify.py'),'--scene','--chip',str(CACHED/'chip.bin'),'--capture',str(CACHED/'screen.ppm'),'--log',str(CACHED/'run.log')]
+  result=subprocess.run(command,capture_output=True,text=True)
+  self.assertEqual(result.returncode,0,result.stderr)
+  self.assertEqual(json.loads(result.stdout)['result'],'PASS')
 if __name__=='__main__':unittest.main()

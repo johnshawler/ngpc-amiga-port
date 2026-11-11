@@ -2,6 +2,7 @@
  * Read-only comparison at the ORIGINAL raster draw point. Test instrumentation
  * only; never compiled into the Amiga game. Counts contain no captured assets. */
 #include "scene_renderer.c"
+static nr_scene_cache sprite_cache; /* static zero initialization = invalid */
 static uint64_t scene_rows, scene_pixels, scene_mismatches, scene_skipped;
 __attribute__((visibility("default")))
 uint64_t retro_reference_scene_count(unsigned n)
@@ -9,13 +10,14 @@ uint64_t retro_reference_scene_count(unsigned n)
     switch(n) {
         case 0:return scene_rows; case 1:return scene_pixels;
         case 2:return scene_mismatches; case 3:return scene_skipped;
+        case 4:return sprite_cache.rebuilds; case 5:return sprite_cache.hits;
         default:return 0;
     }
 }
 static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
 {
     nr_scene s;
-    uint8_t pens[160];
+    uint8_t pens[160],cached[160];
     unsigned x;
     if(gfx->K2GE_MODE || gfx->layer_enable!=7) {scene_skipped++;return;}
     s.tiles=gfx->CharacterRAM;s.maps=gfx->ScrollVRAM;
@@ -27,6 +29,8 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
     s.window_w=gfx->winw;s.window_h=gfx->winh;
     s.swap=gfx->planeSwap;s.background=gfx->bgc;s.outside=gfx->oowc;
     if(nr_scene_row(&s,gfx->raster_line,pens)) {scene_skipped++;return;}
+    if(nr_scene_row_cached(&s,gfx->raster_line,cached,&sprite_cache)) {scene_skipped++;return;}
+    for(x=0;x<160;x++)if(cached[x]!=pens[x])scene_mismatches++;
     scene_rows++;
     for(x=0;x<160;x++) {
         unsigned offset=pens[x]*2;

@@ -77,3 +77,66 @@ int nr_store_scene_row(nr_bitmap *d, unsigned y, const uint8_t pens[160])
     }
     return 0;
 }
+
+void nr_scene_cache_init(nr_scene_cache *c)
+{
+    if(c) {c->valid=0;c->rebuilds=0;c->hits=0;}
+}
+static void prepare_sprites(const nr_scene *s,nr_scene_cache *c)
+{
+    unsigned i,j,y,changed=!c->valid || c->sx!=s->sprite_x || c->sy!=s->sprite_y;
+    int lastx=0,lasty=0;
+    uint16_t next[456];
+    if(!changed) {
+        for(i=0;i<256;i++) if(c->raw[i]!=s->sprites[i]) {changed=1;break;}
+        if(!changed) for(i=0;i<64;i++) if(c->raw[256+i]!=s->sprite_pal[i]) {changed=1;break;}
+    }
+    if(!changed) {c->hits++;return;}
+    c->rebuilds++;
+    for(i=0;i<256;i++)c->raw[i]=s->sprites[i];
+    for(i=0;i<64;i++)c->raw[256+i]=s->sprite_pal[i];
+    c->sx=s->sprite_x;c->sy=s->sprite_y;
+    for(i=0;i<457;i++)c->offsets[i]=0;
+    for(i=0;i<64;i++) {
+        unsigned d=le16(s->sprites+i*4),priority=(d>>11)&3;
+        int x=s->sprites[i*4+2],yy=s->sprites[i*4+3],first,last;
+        if(d&0x400)x+=lastx;
+        if(d&0x200)yy+=lasty;
+        lastx=x;lasty=yy;x+=s->sprite_x;yy+=s->sprite_y;
+        x&=255;if(x>248)x-=256;
+        yy=(yy>248 && yy<256)?yy-256:yy&255;
+        c->x[i]=(int16_t)x;c->y[i]=(int16_t)yy;c->desc[i]=(uint16_t)d;
+        first=yy<0?0:yy;last=yy+8>152?152:yy+8;
+        if(priority && x<160) for(j=(unsigned)first;j<(unsigned)last;j++)
+            c->offsets[j*3+priority]++;
+    }
+    for(i=1;i<457;i++)c->offsets[i]+=c->offsets[i-1];
+    for(i=0;i<456;i++)next[i]=c->offsets[i];
+    /* Descending index means earlier sprites overwrite later equal-priority
+     * pixels; each list is already in painter order. */
+    for(i=64;i>0;i--) {
+        unsigned n=i-1,priority=(c->desc[n]>>11)&3;
+        int first=c->y[n]<0?0:c->y[n],last=c->y[n]+8>152?152:c->y[n]+8;
+        if(priority && c->x[n]<160) for(y=(unsigned)first;y<(unsigned)last;y++)
+            c->entries[next[y*3+priority-1]++]=(uint8_t)n;
+    }
+    c->valid=1;
+}
+int nr_scene_row_cached(const nr_scene *s,unsigned y,uint8_t out[160],nr_scene_cache *c)
+{
+    unsigned i,depth;
+    if(!s || !out || !c || !s->tiles || !s->maps || !s->sprites || !s->sprite_pal || y>=152)return -1;
+    for(i=0;i<160;i++)out[i]=(uint8_t)(248+(s->outside&7));
+    if(y<s->window_y || y>=(unsigned)s->window_y+s->window_h)return 0;
+    for(i=s->window_x;i<160 && i<(unsigned)s->window_x+s->window_w;i++)out[i]=(uint8_t)(240+(s->background&7));
+    prepare_sprites(s,c);
+    for(depth=1;depth<=3;depth++) {
+        unsigned bucket=y*3+depth-1;
+        for(i=c->offsets[bucket];i<c->offsets[bucket+1];i++) {
+            unsigned n=c->entries[i];
+            tile_row(s,out,c->desc[n],c->x[n],y-c->y[n],(s->sprite_pal[n]&15)*4);
+        }
+        if(depth<3)plane(s,s->swap?(depth-1):(2-depth),y,out);
+    }
+    return 0;
+}

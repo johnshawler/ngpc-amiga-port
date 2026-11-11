@@ -201,6 +201,8 @@ def main():
                         raise RuntimeError('Native scene mismatch or unsupported row: %s' % counts)
                     extra['scene_rows'] = counts[0]
                     extra['scene_pixels'] = counts[1]
+                    extra['sprite_cache_rebuilds'] = scene_count(4)
+                    extra['sprite_cache_hits'] = scene_count(5)
                 if args.snapshot_dir:
                     size = export(None, 0)
                     if size != 32876:

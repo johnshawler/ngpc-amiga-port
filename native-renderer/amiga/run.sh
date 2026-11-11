@@ -6,7 +6,8 @@ EXTRA=()
 case "${1:-}" in
     '') ;;
     --scene) OUT="$ROOT/build/native-scene-display"; EXTRA=(--scene) ;;
-    *) echo 'usage: run.sh [--scene]' >&2; exit 2 ;;
+    --cached) OUT="$ROOT/build/native-cached-display"; EXTRA=(--scene) ;;
+    *) echo 'usage: run.sh [--scene|--cached]'  >&2; exit 2 ;;
 esac
 : "${PUAE_CORE:?Set PUAE_CORE to built official libretro PUAE shared core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
