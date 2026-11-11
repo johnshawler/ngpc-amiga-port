@@ -286,3 +286,55 @@ shot-aim-m68020: | $(BUILD)
 	$(QEMU) -cpu m68020 $(BUILD)/test-shot-aim-68020
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(AIM_APPLICATION) -o $(BUILD)/test-shot-aim-application-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-shot-aim-application-68020
+
+SCENE_OBJECTS=shot_scene_objects.c tee_objects.c game_services.c test_shot_scene_objects.c
+.PHONY: shot-scene-objects shot-scene-objects-sanitize shot-scene-objects-m68020
+shot-scene-objects: | $(BUILD)
+	$(CC) $(FLAGS) $(SCENE_OBJECTS) -o $(BUILD)/test-shot-scene-objects
+	$(BUILD)/test-shot-scene-objects
+shot-scene-objects-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(SCENE_OBJECTS) -o $(BUILD)/test-shot-scene-objects-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-scene-objects-sanitize
+shot-scene-objects-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c shot_scene_objects.c -o $(BUILD)/shot-scene-objects-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(SCENE_OBJECTS) -o $(BUILD)/test-shot-scene-objects-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-scene-objects-68020
+
+SHOT_MARKERS=shot_markers.c shot_math.c tee_objects.c game_services.c task_lifecycle.c course_choice.c input_state.c test_shot_markers.c
+.PHONY: shot-markers shot-markers-sanitize shot-markers-m68020
+shot-markers: | $(BUILD)
+	$(CC) $(FLAGS) $(SHOT_MARKERS) -o $(BUILD)/test-shot-markers
+	$(BUILD)/test-shot-markers
+shot-markers-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(SHOT_MARKERS) -o $(BUILD)/test-shot-markers-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-markers-sanitize
+shot-markers-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c shot_markers.c -o $(BUILD)/shot-markers-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_MARKERS) -o $(BUILD)/test-shot-markers-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-markers-68020
+
+OPEN_APPLICATION=$(filter-out test_shot_aim_application.c,$(AIM_APPLICATION)) shot_scene_objects.c shot_club.c shot_markers.c shot_open_application.c test_shot_open_application.c
+.PHONY: shot-open shot-open-sanitize shot-open-m68020
+shot-open: | $(BUILD)
+	$(CC) $(FLAGS) $(OPEN_APPLICATION) -o $(BUILD)/test-shot-open-application
+	$(BUILD)/test-shot-open-application
+shot-open-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(OPEN_APPLICATION) -o $(BUILD)/test-shot-open-application-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-open-application-sanitize
+shot-open-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c shot_club.c -o $(BUILD)/shot-club-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c shot_open_application.c -o $(BUILD)/shot-open-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(OPEN_APPLICATION) -o $(BUILD)/test-shot-open-application-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-open-application-68020
+
+SHOT_CLUB=shot_club.c shot_aim.c shot_scene_objects.c tee_objects.c game_services.c course_screen.c test_shot_club.c
+.PHONY: shot-club shot-club-sanitize shot-club-m68020
+shot-club: | $(BUILD)
+	$(CC) $(FLAGS) $(SHOT_CLUB) -o $(BUILD)/test-shot-club
+	$(BUILD)/test-shot-club
+shot-club-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(SHOT_CLUB) -o $(BUILD)/test-shot-club-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-club-sanitize
+shot-club-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_CLUB) -o $(BUILD)/test-shot-club-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-club-68020

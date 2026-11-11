@@ -5,7 +5,18 @@
 #include <string.h>
 #ifdef NTM_TEST_AIM
 #include "shot_aim_application.h"
+#ifdef NTM_TEST_OPEN
+#include "shot_open_application.h"
+static ntm_shot_open_application open_application;
+#define aim_application (open_application.base)
+static ntm_shot_open_resources open_resources;
+static ntm_shot_scene_object_resources scene_resources;
+static ntm_shot_club_resources club_resources;
+static ntm_shot_marker_resources marker_resources;
+static uint8_t scene_metadata[55],scene_power[256],scene_remainders[10],club_powers[56],club_lies[42];
+#else
 static ntm_shot_aim_application aim_application;
+#endif
 #define application (aim_application.base)
 static ntm_shot_aim_resources aim_math;
 static ntm_shot_aim_application_resources aim_resources;
@@ -120,12 +131,31 @@ int main(void)
     }
     aim_resources.aim=&aim_math;aim_resources.worlds=aim_worlds;aim_resources.world_count=54;
     aim_resources.hud=&aim_hud;aim_resources.setup=&aim_setup;aim_resources.palette=jobs[0];
+#ifdef NTM_TEST_OPEN
+    {static const uint8_t velocity[11]={8,44,40,48,0,120,52,56,128,124,132};
+    for(i=0;i<11;i++){scene_metadata[5*i]=56;scene_metadata[5*i+2]=velocity[i];scene_metadata[5*i+4]=3;}}
+    scene_resources.metadata=scene_metadata;scene_resources.metadata_size=55;
+    scene_resources.power_scale=scene_power;scene_resources.power_scale_size=256;
+    scene_resources.remainders=scene_remainders;scene_resources.remainders_size=10;
+    club_resources.aim=&aim_math;club_resources.scene=&scene_resources;
+    for(i=0;i<12;i++){unsigned j;club_resources.powers[i].data=club_powers;club_resources.powers[i].size=56;
+        for(j=0;j<15;j++){club_resources.lies[i][j].data=club_lies;club_resources.lies[i][j].size=42;club_resources.overflow_lies[i][j]=club_resources.lies[i][j];}}
+    for(i=0;i<23;i++)club_resources.labels[i]=assets[0];
+    for(i=0;i<11;i++)club_resources.digits[i]=assets[0];
+    for(i=0;i<19;i++)club_resources.lie_icons[i]=assets[0];
+    marker_resources.quarter=quarter;marker_resources.quarter_size=4100;marker_resources.metadata=scene_metadata+10;marker_resources.metadata_size=10;
+    open_resources.scene=&scene_resources;open_resources.club=&club_resources;open_resources.markers=&marker_resources;open_resources.objects=&banner_objects;
+#endif
 #endif
     for(mode=0;mode<8;mode++)for(selection=0;selection<3;selection++) {
         ntm_course_application *s=&app.selector;ntm_course_driver *d=&s->driver;
         unsigned count=0,maximum_tasks=0,seen_banner=0,seen_exit=0;uint8_t prepare_cursor=0;
         #ifdef NTM_TEST_AIM
+#ifdef NTM_TEST_OPEN
+        memset(&open_application,0,sizeof open_application);
+#else
         memset(&aim_application,0,sizeof aim_application);
+#endif
 #else
         memset(&application,0,sizeof application);
 #endif
@@ -137,6 +167,9 @@ int main(void)
         assert(!ntm_shot_application_start(&application,&resources,courses,titles,objects,&round,&tee_resources,&holes,&shot));
         #ifdef NTM_TEST_AIM
         assert(!ntm_shot_aim_application_enable(&aim_application,&aim_resources));
+#ifdef NTM_TEST_OPEN
+        assert(!ntm_shot_open_application_enable(&open_application,&open_resources));
+#endif
 #endif
         if(mode==6)tee.owner.skip_overview=1;
         if(mode==7)application.banner_context.controlling_player=1;
@@ -163,11 +196,18 @@ int main(void)
             else assert(!application.started && !seen_banner);
         } else {
             #ifdef NTM_TEST_AIM
+#ifdef NTM_TEST_OPEN
+            assert(application.boundary==NTM_SHOT_BOUNDARY_AIM_OPEN && open_application.phase==2);
+            assert(open_application.club.phase==1 && open_application.markers.phase==1 && open_application.hint.phase==0 && open_application.camera.phase==1);
+            assert(open_application.handlers_installed && !open_application.input_dispatch && open_application.open_update==d->updates);
+            assert(tee.objects[4].tag==65535 && s->display.zero_flags[8]>=10);
+#else
             assert(application.boundary==NTM_SHOT_BOUNDARY_AIM_SETUP && aim_application.phase==1 && application.scene.phase==2);
             assert(s->display.zero_flags[8]==1 && tee.objects[4].tag==5);
             assert(tee.objects[4].width==68u+4u*tee.hole.hole[4] && tee.objects[4].velocity==4u*tee.hole.hole[5]);
             assert(aim_application.world.bytes[44]==0 && aim_application.world.bytes[45]==152);
             assert(s->screen.stamp_bytes==24);
+#endif
 #else
             assert(application.boundary==NTM_SHOT_BOUNDARY_SCENE_SETUP && application.scene.phase==2);
             assert(!s->display.zero_flags[8]);
@@ -175,7 +215,11 @@ int main(void)
             assert(application.banner.phase==NTM_SHOT_BANNER_DONE && seen_banner && seen_exit);
             assert(application.start_update==tee.complete_update+1 && application.banner_update==application.start_update);
             assert(application.complete_update==d->updates && !application.raster.callback);
+#ifdef NTM_TEST_OPEN
+            assert(d->parent.viewport[2]==160 && d->parent.viewport[3]==152 && !d->parent.viewport[0] && !d->parent.viewport[1]);
+#else
             assert(!d->parent.viewport[2]);
+#endif
             assert(application.scene.player.stroke_snapshot==1 && tee.hole.players[0][2]==1);
             assert(tee.hole.hole[0x70]==4 && tee.hole.hole[0x73]==4 && tee.hole.hole[0x76]==4);
             assert(maximum_tasks>=6 && !app.fallback.callback);
@@ -185,7 +229,11 @@ int main(void)
     }
     assert(flows==24 && unsupported_flows==6);
     #ifdef NTM_TEST_AIM
+#ifdef NTM_TEST_OPEN
+    puts("shot open application:24 authored flows, genuine scene children and first-visible boundary passed");
+#else
     puts("shot aim application:24 authored flows, real world/HUD/object services, explicit next-dispatch boundary passed");
+#endif
 #else
     puts("shot application:24 authored flows, real task pool, palette/raster lifecycle, explicit unsupported branches passed");
 #endif

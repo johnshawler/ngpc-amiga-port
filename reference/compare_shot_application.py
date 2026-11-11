@@ -12,7 +12,10 @@ import tee_setup_case_common as TT
 import hole_prepare_case_common as H
 import compare_tee_objects as T
 import shot_application_case_common as S
-aim_mode=bool(os.environ.get("NTM_SHOT_AIM_CONTINUATION"))
+open_mode=bool(os.environ.get("NTM_SHOT_OPEN_CONTINUATION"))
+if open_mode:import shot_open_application_case_common as OP
+aim_mode=bool(os.environ.get("NTM_SHOT_AIM_CONTINUATION")) or open_mode
+expected_boundary=4 if open_mode else 3 if aim_mode else 1
 if aim_mode:import shot_aim_application_case_common as A
 app=C.CDLL(os.environ.get('NTM_SHOT_APPLICATION_LIBRARY',str(ROOT/'build/shot-check/native-application.so')));app.bridge_start.argtypes=[C.c_void_p]*17+[C.c_uint]+[C.c_void_p]*2;app.bridge_pointer.argtypes=[C.c_uint];app.bridge_pointer.restype=C.c_void_p;app.bridge_export.argtypes=[C.POINTER(U32)]
 fi=buf(data(0x219859-128,256));fo=buf(data(0x219867-128,256));rngtable=buf(data(load(0x260010,4)-128,256));values=(U32*74)()
@@ -49,6 +52,10 @@ if aim_mode:
  app.bridge_aim_pointer.argtypes=[C.c_uint];app.bridge_aim_pointer.restype=C.c_void_p
  app.bridge_aim_enable.argtypes=[C.c_void_p]
  def aim_obj(n,t):return C.cast(app.bridge_aim_pointer(n),C.POINTER(t)).contents
+if open_mode:
+ app.bridge_open_pointer.argtypes=[C.c_uint];app.bridge_open_pointer.restype=C.c_void_p
+ app.bridge_open_enable.argtypes=[C.c_void_p]
+ def open_obj(n,t):return C.cast(app.bridge_open_pointer(n),C.POINTER(t)).contents
 tee_shape_root=T.shape_root
 selector_shapes=native.shapes
 def obj(n,t):return C.cast(app.bridge_pointer(n),C.POINTER(t)).contents
@@ -58,8 +65,10 @@ def compare_cursor(label,head):
   m=object.__new__(T.Native);m.b=bytearray(ram[:16384]);m.d=obj(2,T.Display);m.e=obj(25,T.Engine)
   m.c=obj(24,T.Cursor*32);m.x=obj(28,U16*32);m.global_=U8(obj(0,I.Init).flags)
   m.ts=obj(5,U8*8192);m.ss=obj(7,U8*256);m.ps=obj(8,U8*64)
-  T.shape_root=A.object_shapes[18*obj(27,H.State).hole[4]+obj(27,H.State).hole[5]] if aim_mode and aim_obj(3,U8).value else S.resolved["shape_address"] if shot_values[0] else tee_shape_root
-  m.serial(oldjobs=0,head=head);m.compare(label);return
+  T.shape_root=OP.resolved_scene["shape_address"] if open_mode and open_obj(5,U8).value else A.object_shapes[18*obj(27,H.State).hole[4]+obj(27,H.State).hole[5]] if aim_mode and aim_obj(3,U8).value else S.resolved["shape_address"] if shot_values[0] else tee_shape_root
+  m.serial(oldjobs=0,head=head)
+  for j in range(2):m.w(0x4d80+2*j,obj(0,I.Init).screen_words[j],2)
+  m.compare(label);return
  m=object.__new__(Native);m.b=bytearray(ram[:16384]);m.d=obj(2,Display);m.e=obj(9,Engine)
  ni=obj(0,I.Init);m.c=obj(20,Cursor) if round_values[0] else obj(15,Cursor) if title_values[0] else C.cast(app.bridge_pointer(0)+I.Init.cursor.offset,C.POINTER(Cursor)).contents;m.global_=U8(ni.flags)
  native.shapes=K.round_shapes if round_values[0] else shape_roots[values[52]] if title_values[0] else selector_shapes
@@ -80,10 +89,12 @@ for case in range(24):
  reg(6,0x7040);execute(0x209215);execute(0x202c77);execute(0x201192);execute(0x200c7b);store(0x400d,load(0x400d,1)|192,1)
  records=J.create_records(case%2,case%6,65535)
  if aim_mode:app.bridge_aim_reset()
+ if open_mode:app.bridge_open_reset()
  assert app.bridge_start(C.byref(initial),C.byref(s),C.byref(disp),C.byref(p),I.assets,palettejobs,I.descriptor,fi,fo,rngtable,rng,C.byref(assets),tiles,maps,sprites,spal,controls,0,course_resources,C.byref(records))==0
  app.bridge_tee_state(1 if 24<=case<30 else 0,case%3,case>=30)
  if aim_mode:
   assert app.bridge_aim_enable(C.byref(A.resources))==0
+  if open_mode:assert app.bridge_open_enable(C.byref(OP.open_resources))==0
   # Original2049eb defaults predate this opt-in selector-start fixture.
   for a,v in ((0x573c,0x9800),(0x573e,0x8110),(0x5740,0x8300)):store(a,v,2)
  s=obj(1,I.Screen);p=obj(3,I.Palette);disp=obj(2,I.Display);ni=obj(0,I.Init)
@@ -102,7 +113,7 @@ for case in range(24):
 
  for i in range(4):
   a=0x7180+64*i;v=extra_values[9*i:9*i+9]
-  for o,x,n in zip((0,4,8,12,16,17,18,19,20),v,(4,4,4,4,1,1,1,1,2)):store(a+o,x,n)
+  for o,x,n in zip((0,4,8,12,16,17,18,19,20),v,(4,4,4,4,1,1,1,1,2)):store(a+o,0xffffffff if o==8 and not x else x,n)
  rs=obj(35,S.Raster);rs.timer_run=(case*13+136)&255;rs.interrupt_shadow=(case*11)&255;rs.gpu_control=128
  store(0x20,rs.timer_run,1);store(0x7248,0xffffffff,4);store(0x6c27,rs.interrupt_shadow,1);store(0x6fd4,0x200471,4);store(0x8000,rs.gpu_control,1);store(0x5706,values[45],4);store(0x40fb,sel,2);store(0x4148,0,1);store(0x400e,rng[0],1);put(0x40bf,controls)
  for i,x in enumerate((80,0,0,152)):store(0x8002+i,x,1)
@@ -123,7 +134,7 @@ for case in range(24):
   for k in range(100000):
    pc=get(8)
    if pc==0x20137c and get(6)==0x7000:break
-   if pc in ((0x20982f,0x203eee) if aim_mode else (0x209751,0x203eee)):break # Exact declared continuation boundary.
+   if pc in ((0x203eee,) if open_mode else (0x20982f,0x203eee) if aim_mode else (0x209751,0x203eee)):break # Exact declared continuation boundary.
    if pc in (0x250103,0x2500ea):
     service=int(pc==0x250103);command=get(0)&65535;parameter=get(1)&65535
     sp=get(7);caller=load(sp,4)
@@ -146,7 +157,7 @@ for case in range(24):
   assert rng[0]==load(0x400e,1),('shared random cursor',case,tick,rng[0],load(0x400e,1))
   assert values[48]==load(0x40fb,1);assert list(values[49:53])==[load(0x4545,2),load(0x454b,1),load(0x4113,1),load(0x4204,1)]
   assert list(values[53:57])==[load(0x8002+i,1) for i in range(4)];assert list(values[57:61])==[load(0x420b+i,1) for i in range(4)];assert list(values[61:64])==sounds
-  assert values[45]==load(0x5706,4);assert values[47]==load(0x570a,4)
+  assert values[45]==load(0x5706,4),(case,tick,"free",hex(values[45]),hex(load(0x5706,4)));assert values[47]==load(0x570a,4)
   current_records=obj(11,J.Records)
   for golfer in range(6):
    assert current_records.count[golfer]==load(0x594f+golfer*0x27+0x24,2)
@@ -197,8 +208,9 @@ for case in range(24):
    animation_node=next((0x7000+64*i if i<5 else 0x7180+64*(i-5)) for i,cb in enumerate(list(values[::9])[:5]+list(extra_values[::9])) if cb==0x20c503)
    assert shot_values[15]==load(animation_node+22,2) and shot_values[16]==load(animation_node+24,1)
   if shot_values[3]:
-   banner_node=next((0x7000+64*i if i<5 else 0x7180+64*(i-5)) for i,cb in enumerate(list(values[::9])[:5]+list(extra_values[::9])) if cb in (0x20c0f7,0x20c13e,0x20c158,0x20c199))
-   assert shot_values[13]==load(banner_node+22,1) and shot_values[14]==load(banner_node+23,1)
+   banner_node=next(((0x7000+64*i if i<5 else 0x7180+64*(i-5)) for i,cb in enumerate(list(values[::9])[:5]+list(extra_values[::9])) if cb in (0x20c0f7,0x20c13e,0x20c158,0x20c199)),None)
+   if banner_node is not None:assert shot_values[13]==load(banner_node+22,1) and shot_values[14]==load(banner_node+23,1)
+   else:assert open_mode and open_obj(5,U8).value and shot_values[3]==5 # Real children have reused the completed banner node.
    rs=obj(35,S.Raster)
    assert rs.upper_scroll==load(0x4443,1) and rs.lower_scroll==load(0x4441,1) and rs.interrupt_shadow==load(0x6c27,1)
    assert load(0x6fd4,4)==(0x20c620 if rs.callback else 0x200471)
@@ -220,10 +232,23 @@ for case in range(24):
     if s.fill_status[j]!=255:
      f=s.fills[j]
      assert (0x9000+f.offset,f.height,f.width,f.fill)==(load(0x5742+8*j,4),load(0x5746+8*j,1),load(0x5747+8*j,1),load(0x5748+8*j,2))
+  if open_mode and open_obj(5,U8).value:
+   club=open_obj(0,OP.Club);markers=open_obj(1,OP.Markers);hint=open_obj(2,OP.Hint)
+   for n,a in [('label',0x41dd),('delta',0x41de),('restore_delay',0x41e1),('change_flag',0x41da)]:assert getattr(club,n)==load(a,1),(case,tick,n)
+   assert bytes(open_obj(4,U8*32))==data(0x44ff,32)
+   callbacks=list(values[::9])[:5]+list(extra_values[::9])
+   for n,cb in enumerate(callbacks):
+    node=0x7000+64*n if n<5 else 0x7180+64*(n-5)
+    if cb==0x20ad1a:assert (club.maximum,club.minimum)==(load(node+22,1),load(node+23,1))
+    if cb==0x20af8a:assert (markers.step,markers.limit)==(load(node+22,1),load(node+23,2))
+    if cb==0x20c775:assert (hint.repeat,hint.last,hint.pending,hint.changed)==tuple(load(node+22+j,1) for j in range(4))
   if result:
    boundary=shot_values[1] if shot_values[0] else tee_values[1] if tee_values[0] else -values[69]
    boundaries[boundary]=boundaries.get(boundary,0)+1
-   if boundary==(3 if aim_mode else 1):
+   if open_mode and boundary==expected_boundary:
+    assert open_obj(5,U8).value==2 and open_obj(6,U8).value==1
+    assert load(0x413c,4)==0x204786 and load(0x4140,4)==0x20485a and load(0x413b,1)==open_obj(7,U8).value==0
+   if boundary==expected_boundary:
     courses_seen.add(values[52]);assert shot_values[2]==2 and shot_values[3]==5
     assert shot_values[4]==tee_values[7]+1 and shot_values[5]==shot_values[4]
     assert shot_values[6]==values[73]
@@ -242,5 +267,5 @@ for case in range(24):
   assert tick<1100
  count+=1
  if count%12==0:print("FLOW_PROGRESS",count,updates,file=sys.stderr,flush=True)
-assert courses_seen=={0,1,2} and boundaries=={(3 if aim_mode else 1):21,-2:3},(courses_seen,boundaries)
-print(json.dumps({'flows':count,'updates':updates,'separate_head_drains':head_drains,'courses':sorted(courses_seen),'boundaries':boundaries,'scope':('complete native selector through real209751 setup and209e3a; exact209830 next dispatch remains unconverted; no aiming input or swing' if aim_mode else 'complete native selector through first shot preparation and real first-tee banner, nested tasks, animated palettes and raster registration; stops at209751 before unconverted scene setup; raster row latch has independent original oracle, no playable shot or audio synthesis')}))
+assert courses_seen=={0,1,2} and boundaries=={expected_boundary:21,-2:3},(courses_seen,boundaries)
+print(json.dumps({'flows':count,'updates':updates,'separate_head_drains':head_drains,'courses':sorted(courses_seen),'boundaries':boundaries,'scope':('complete native selector through genuine scene children and2098af viewport opening; next2098ee is an explicit boundary, no swing' if open_mode else 'complete native selector through real209751 setup and209e3a; exact209830 next dispatch remains unconverted; no aiming input or swing' if aim_mode else 'complete native selector through first shot preparation and real first-tee banner, nested tasks, animated palettes and raster registration; stops at209751 before unconverted scene setup; raster row latch has independent original oracle, no playable shot or audio synthesis')}))

@@ -19,6 +19,7 @@ typedef struct {
     ntm_shot_aim aim;ntm_aim_world_state world;
     uint8_t saved_hud[4],phase;
     const ntm_shot_aim_application_resources *resources;
+    ntm_task_callback scene_continuation; /* Optional genuine209830; NULL preserves setup boundary. */
 } ntm_shot_aim_application;
 /* Call after base start and before first update. Zero-init state first. This
  * installs genuine scene continuation with original2049eb map/palette defaults

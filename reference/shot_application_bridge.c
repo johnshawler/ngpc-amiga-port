@@ -7,7 +7,13 @@
 #include "shot_application.c"
 #ifdef NTM_SHOT_BRIDGE_AIM
 #include "shot_aim_application.c"
+#ifdef NTM_SHOT_BRIDGE_OPEN
+#include "shot_open_application.c"
+static ntm_shot_open_application open_application;
+#define aim_application (open_application.base)
+#else
 static ntm_shot_aim_application aim_application;
+#endif
 #define shot_application (aim_application.base)
 #else
 static ntm_shot_application shot_application;
@@ -40,6 +46,22 @@ static void observe_tee_sound(void *p,uint8_t service,uint16_t command,uint16_t 
 static uint32_t callback(ntm_task_callback c){
 #ifdef NTM_SHOT_BRIDGE_AIM
  if(c==aim_setup_boundary)return 0x209830;
+#ifdef NTM_SHOT_BRIDGE_OPEN
+ if(c==open_scene_entry)return 0x209830;
+ if(c==open_wait)return 0x20989e;
+ if(c==open_visible_delay)return 0x2098ee;
+ if(c==open_hint_entry)return 0x20c744;
+ if(c==open_hint_tick)return 0x20c775;
+ if(c==open_hint_active)return 0x20c786;
+ if(c==open_marker_entry)return 0x20aee1;
+ if(c==open_marker_tick)return 0x20af8a;
+ if(c==open_marker_waiting)return 0x20afa5;
+ if(c==open_club_entry)return 0x20ace7;
+ if(c==open_club_tick)return 0x20ad1a;
+ if(c==open_camera_entry)return 0x20c883;
+ if(c==open_camera_tick)return 0x20c894;
+ if(c==open_camera_active)return 0x20c8a5;
+#endif
 #endif
  if(c==shot_scene_entry)return 0x2096a4;
  if(c==shot_scene_wait)return 0x209749;

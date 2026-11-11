@@ -90,3 +90,10 @@ No extracted art, cartridge bytes or captures belong in version control.
 
 This source checkpoint does not establish target memory/disk fit, A1200 display
 cadence or game speed. The previously tested target remains unchanged.
+
+## Optional next stage
+
+The separately linked `shot_open_application` can now supply the genuine
+`209830` continuation. Its explicit opt-in does not change the NULL/default
+setup boundary described above. See [SHOT_OPEN.md](SHOT_OPEN.md) for the visible
+scene, real child services, verification and remaining unconverted boundaries.

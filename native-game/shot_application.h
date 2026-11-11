@@ -12,7 +12,7 @@ typedef struct {
     const ntm_tee_object_assets *objects;
     const ntm_shot_palette_job *exit_palettes; /* Exact commands6c then70. */
 } ntm_shot_resources;
-enum {NTM_SHOT_BOUNDARY_NONE=0,NTM_SHOT_BOUNDARY_SCENE_SETUP,NTM_SHOT_BOUNDARY_UNSUPPORTED,NTM_SHOT_BOUNDARY_AIM_SETUP};
+enum {NTM_SHOT_BOUNDARY_NONE=0,NTM_SHOT_BOUNDARY_SCENE_SETUP,NTM_SHOT_BOUNDARY_UNSUPPORTED,NTM_SHOT_BOUNDARY_AIM_SETUP,NTM_SHOT_BOUNDARY_AIM_OPEN};
 typedef struct {
     ntm_tee_setup_application base; /* First for existing scheduled services. */
     ntm_shot_scene scene;ntm_shot_scene_context scene_context;

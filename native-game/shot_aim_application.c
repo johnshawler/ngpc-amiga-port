@@ -34,7 +34,8 @@ static int aim_scene_continue(ntm_task_context *c,ntm_task *t)
        ntm_shot_hud_clear(i->maps)<0 || ntm_tee_objects_reset(i->display,tee->objects)<0)return -1;
     *i->flags=(uint8_t)((*i->flags&63)|16);i->display->zero_flags[0]=34;i->display->capacity=30;
     if(ntm_shot_aim_panorama(&tee->context,r->setup,(uint8_t)course,(uint8_t)hole)<0)return -1;
-    tee->object_resources[4]=r->objects[index];t->callback=aim_setup_boundary;a->phase=1;
+    tee->object_resources[4]=r->objects[index];t->callback=a->scene_continuation?a->scene_continuation:aim_setup_boundary;a->phase=1;
+    if(a->scene_continuation)return 0;
     /* This is an explicit boundary after the completed callback, not a fake
      * call to209830. The real tail still executes within this scheduler tick. */
     b->boundary=NTM_SHOT_BOUNDARY_AIM_SETUP;selector->driver.running=0;
