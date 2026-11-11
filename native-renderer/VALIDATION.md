@@ -30,3 +30,14 @@ A diagnostic QEMU run with `-one-insn-per-tb` was canceled for excessive runtime
 it produced no completed result. The normal explicit `-cpu m68020` run completed
 all cases successfully. It is the completed run listed above. QEMU is a CPU
 execution check only, and this Linux test binary cannot be launched by AmigaOS.
+
+## Follow-on synthetic Amiga display
+
+The new amiga/ harness now passes actual PAL A1200/AGA emulated display and Chip
+memory validation using 2 MiB Chip and zero Fast. All 81,920 planar bytes, all 256
+palette colors and every captured pixel including borders match independently
+computed synthetic expectations. The repository-owned headless host reproduces
+the capture. See amiga/README.md for tool pins, commands and limits.
+
+This supersedes the earlier absence of a synthetic display harness only. It does
+not establish game integration, audio, playable controls or rendering speed.
