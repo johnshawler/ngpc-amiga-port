@@ -97,3 +97,8 @@ The 600-frame private input sequence passes original versus instrumented video,
 audio and final-state equivalence. Exported RAM matches libretro's independent
 RAM API; repeated reads are stable and short output buffers reject atomically.
 This establishes a bounded observation oracle, not native routine correctness.
+
+Native control-state comparison: `tools/build-reference.sh --control` and
+`run.py --control-check` observe the original input-state routine. Optional
+`--control-cases` runs isolated original/native differential cases before frames.
+See `native-game/README.md` for scope, exactness gates and target timing limits.

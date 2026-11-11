@@ -9,7 +9,9 @@ case "${1:-}" in
   "") ;;
   --instrumented) MODE=instrumented; OUT="$OUT/instrumented" ;;
   --scene) MODE=scene; OUT="$OUT/scene" ;;
-  *) echo "usage: $0 [--instrumented|--scene]" >&2; exit 2 ;;
+  --control) MODE=control; OUT="$OUT/control" ;;
+  --control-probe) MODE=control-probe; OUT="$OUT/control-probe" ;;
+  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe]" >&2; exit 2 ;;
 esac
 [ "$(git -C "$SRC" rev-parse HEAD)" = "$PIN" ] || { echo 'Incorrect reference-core pin' >&2; exit 1; }
 mkdir -p "$OUT"
@@ -44,6 +46,21 @@ assert source.count(state)==1
 source=source.replace(state,'   if(load){nr_event_invalidate_all(&event_cache);nr_fine_event_invalidate_all(&fine_cache);nr_adaptive_invalidate_all(&adaptive_cache);}\n'+state)
 p.write_text(source)
 PYHOOK
+fi
+if [ "$MODE" = control-probe ]; then
+    python3 "$ROOT/reference/control-probe.py" "$STAGE/core-source"
+fi
+if [ "$MODE" = control ]; then
+    cp "$ROOT/native-game/input_state.c" "$ROOT/native-game/input_state.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
+    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" <<'PYCONTROL'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1]);s=p.read_text()
+a='int32 TLCS900h_interpret(void)\n{'
+assert s.count(a)==1
+s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+a+'\n    reference_control_before();')
+p.write_text(s)
+PYCONTROL
 fi
 export LC_ALL=C TZ=UTC SOURCE_DATE_EPOCH=946684800
 make -C "$STAGE/core-source" -j"${JOBS:-2}" platform=unix CC=gcc CXX=g++ GIT_VERSION='" a50d5ac"' > "$STAGE/build.log" 2>&1 || {

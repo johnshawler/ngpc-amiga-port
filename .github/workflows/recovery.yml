@@ -22,5 +22,7 @@ jobs:
         run: bash tools/build-reference.sh --instrumented
       - name: Build read-only scene comparison
         run: bash tools/build-reference.sh --scene
+      - name: Build native control-state comparison
+        run: bash tools/build-reference.sh --control
       - name: Run source and no-cartridge reference checks
         run: python3 -m unittest discover -s tests -v

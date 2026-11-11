@@ -57,6 +57,8 @@ def main():
     p.add_argument('--capture-dir', type=Path, help='Private RGB PPM screenshots; never publish game assets')
     p.add_argument('--capture-every', type=int, default=60)
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
+    p.add_argument('--control-check', action='store_true', help='Compare native input-state routine at original boundaries')
+    p.add_argument('--control-cases', action='store_true', help='Run isolated original/native input-state cases before frames')
     p.add_argument('--frames', type=int, default=120)
     p.add_argument('--inputs', type=Path, help='JSON frame -> NGPC button list; absent frames release all buttons')
     p.add_argument('--epoch', type=int, default=946684800)
@@ -176,6 +178,17 @@ def main():
                 core.retro_get_memory_data.restype = C.c_void_p
                 core.retro_get_memory_size.argtypes = [C.c_uint]
                 core.retro_get_memory_size.restype = C.c_size_t
+            if args.control_check or args.control_cases:
+                control_count = core.retro_reference_control_count
+                control_count.argtypes = [C.c_uint]
+                control_count.restype = C.c_uint64
+                if args.control_cases:
+                    cases = core.retro_reference_control_selftest
+                    cases.restype = C.c_uint64
+                    failures = cases()
+                    if failures or control_count(3) != 136192:
+                        raise RuntimeError('Control cases failed: %s' % failures)
+                    print('PASS original/native control cases: %s' % control_count(3), file=sys.stderr)
             if args.scene_check:
                 scene_count = core.retro_reference_scene_count
                 scene_count.argtypes = [C.c_uint]
@@ -195,6 +208,11 @@ def main():
                         raise RuntimeError('Existing screenshot differs')
                     path.write_bytes(blob)
                 extra = {}
+                if args.control_check:
+                    counts = [control_count(i) for i in range(3)]
+                    if counts[1] or counts[2]:
+                        raise RuntimeError('Native control mismatch or unsupported boundary: %s' % counts)
+                    extra['control_calls'] = counts[0]
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
                     if counts[2] or counts[3]:
@@ -244,6 +262,8 @@ def main():
                 return dict(type='frame', frame=n, input_mask=mask, width=width, height=height, video_sha256=digest(pixels), audio_sha256=digest(audio), audio_samples=len(audio)//4, **extra)
             for frame in range(args.frames):
                 print(json.dumps(step(frame), sort_keys=True))
+            if args.control_check and args.frames and control_count(0) == 0:
+                raise RuntimeError('No control routine calls observed')
             if args.scene_check and args.frames and scene_count(0) == 0:
                 raise RuntimeError('Scene check ran no rows')
             state = snapshot()
