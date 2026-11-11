@@ -118,3 +118,7 @@ initialization, fade-in and the bounded input-driven selector application.
 The subsequent [cursor consumer](COURSE_CURSOR.md) and bounded
 [Amiga selector frontend](../native-renderer/amiga/selector_README.md) add
 interactive display. Audio synthesis and subsequent golf gameplay remain absent.
+
+The next original-game boundary after acceptance is documented in
+[POST_SELECTOR_PLAN.md](POST_SELECTOR_PLAN.md): course introduction, then the
+round-record and tee-shot setup tasks. These later stages are not yet converted.

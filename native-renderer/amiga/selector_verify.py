@@ -8,6 +8,7 @@ not whole-game equivalence, full speed, sound, or physical hardware behavior.
 """
 import argparse
 import json
+import re
 import struct
 from pathlib import Path
 from PIL import Image, ImageChops
@@ -115,10 +116,11 @@ def verify(capture,chip,source_palette):
     assert im.tobytes()==canvas.tobytes(),'Every captured RGB pixel must match palette and coherent displayed snapshot'
     return {'selection':w[8],'displayed_selection':w[21],'updates':w[7],'displayed_update':w[19],'running':w[9],'outcome':w[10],
             'logical_updates_dropped':w[12],'complete_frames':w[13],'last_composition_seconds':w[14]/w[29],
-            'max_row_ms':w[15]*1000/w[29],'max_input_poll_gap_ms':w[16]*1000/w[29],
+            'max_row_ms':w[15]*1000/w[29],'max_row_or_cached_chunk_ms':w[15]*1000/w[29],'max_input_poll_gap_ms':w[16]*1000/w[29],
             'max_composition_seconds':w[31]/w[29],'rows_composed':w[32],'rows_reused':w[33],
             'random_delay_updates':w[38],'free_chip_before_display_allocation':w[40],'free_chip_after_display_allocation':w[41],
-            'source_palette_bytes_verified':512,'palette_inverted':bool(w[28]),'captured_pixels_verified':im.width*im.height,'origin':origin}
+            'source_palette_bytes_verified':512,'planar_cache_hits':w[42],'planar_cache_misses':w[43],'max_cache_lookup_ms':w[44]*1000/w[29],'planar_cache_bytes':w[45],'last_cache_entry':w[46],'presented_cache_lookup_ms':w[47]*1000/w[29],
+            'palette_inverted':bool(w[28]),'captured_pixels_verified':im.width*im.height,'origin':origin}
 
 
 def main():
@@ -132,11 +134,23 @@ def main():
     assert all(x=='fastmem_size=0' for x in log.splitlines() if x.startswith('fastmem_size='))
     assert 'SELECTOR stage=8' in log,'Input flow did not complete'
     results={label:verify(a.directory/f'screen.{label}.ppm',a.directory/f'chip.{label}.bin',palette_from_cartridge(rom,label=='finished' and a.scenario!='cancel')) for label in ('initial','right','left','finished')}
+    for label,selection in (('japan',0),('return',1),('repeat',2),('return2',1)):
+        if (a.directory/f'chip.{label}.bin').exists():
+            results[label]=verify(a.directory/f'screen.{label}.ppm',a.directory/f'chip.{label}.bin',palette_from_cartridge(rom,False))
+            assert results[label]['displayed_selection']==selection
+    latency={}
+    for label,input_frame,reported,verified,reported_delta,verified_delta in re.findall(r'LATENCY (\w+) input_frame=(\d+) first_report_frame=(\d+) verified_frame=(\d+) reported_frames=(\d+) verified_frames=(\d+)',log):
+        latency[label]={'input_frame':int(input_frame),'first_report_frame':int(reported),'verified_capture_frame':int(verified),'reported_frames':int(reported_delta),'verified_capture_frames':int(verified_delta),'verified_capture_ms_nominal_pal':int(verified_delta)*20}
+    cache_enabled=results['initial']['planar_cache_bytes']>0
+    if cache_enabled:
+        assert all(v['last_cache_entry']<15 for label,v in results.items() if label!='finished'), 'Full selector captures must use exact cache hits'
+        assert results['finished']['planar_cache_misses']>0, 'Fade/exit must exercise fallback'
+    initial_frame=int(re.search(r'STAGE initial frame=(\d+)',log).group(1))
     assert [results[x]['displayed_selection'] for x in ('initial','right','left')]==[1,2,1]
     assert (results['finished']['random_delay_updates']>0)==(a.scenario=='random')
     assert results['finished']['running']==0 and results['finished']['outcome']==(252 if a.scenario=='cancel' else 0)
-    result={'result':'PASS','scenario':a.scenario,'model':'PAL A1200 68EC020 AGA, 2 MiB Chip, zero Fast','explicit_display_allocation_bytes':170000,'captures':results,
+    result={'result':'PASS','scenario':a.scenario,'model':'PAL A1200 68EC020 AGA, 2 MiB Chip, zero Fast','explicit_display_allocation_bytes':170000,'captures':results,'navigation_latency':latency,'cache_enabled':cache_enabled,'initial_verified_capture_frame':initial_frame,'boot_to_verified_selector_ms_nominal_pal':initial_frame*20,
             'checks':['external RetroPad samples through emulated Amiga joystick registers','native application navigation and accept/cancel result','all displayed bitplane bytes against independent per-pixel/depth oracle','all 512 source palette bytes independently resolved from cartridge jobs','all 256 palette colors, both AGA nibble banks and inversion','every captured RGB pixel, including border'],
-            'limits':['private bounded course-selector slice, no later gameplay or sound','coherent rendering lags independently paced input; animation frames can be skipped','no full-speed or physical-hardware claim','takes over hardware until emulator reset, no OS return']}
+            'limits':['private bounded course-selector slice, no later gameplay or sound','coherent rendering lags independently paced input; animation frames can be skipped','navigation latency is button-to-oracle-verified capture, with two stable-frame capture guard; milliseconds use nominal PAL50Hz','cache is linked static data retained for executable lifetime; no whole-game memory proof','no full-speed or physical-hardware claim','takes over hardware until emulator reset, no OS return']}
     (a.directory/'verification.json').write_text(json.dumps(result,indent=2)+'\n');print(json.dumps(result,indent=2))
 if __name__=='__main__':main()

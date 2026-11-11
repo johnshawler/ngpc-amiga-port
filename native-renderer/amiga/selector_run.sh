@@ -3,7 +3,12 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/../.." && pwd)
 OUT="$ROOT/build/native-selector"
 SCENARIO=${1:-accept}
-case "$SCENARIO" in accept|cancel|random);; *) echo 'usage: selector_run.sh [accept|cancel|random]' >&2; exit 2;; esac
+case "${2:-}" in
+    '') ;;
+    --uncached) OUT="$ROOT/build/native-selector-uncached" ;;
+    *) echo 'usage: selector_run.sh [accept|cancel|random] [--uncached]' >&2; exit 2 ;;
+esac
+case "$SCENARIO" in accept|cancel|random);; *) echo 'usage: selector_run.sh [accept|cancel|random] [--uncached]' >&2; exit 2;; esac
 : "${PUAE_CORE:?Set PUAE_CORE to official libretro PUAE core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
 : "${KICKSTART:?Set KICKSTART to authorized local A1200 3.1 ROM}"

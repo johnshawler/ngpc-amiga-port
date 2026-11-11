@@ -24,6 +24,19 @@ class SelectorFrontendTest(unittest.TestCase):
         self.assertIn('384 exact invalidation cases', result.stdout)
 
 
+    @unittest.skipUnless(shutil.which('cc'), 'host compiler unavailable')
+    def test_exact_planar_key_mutations_and_fade_fallbacks(self):
+        out = ROOT / 'build/native-selector/test-cache-key-unittest'
+        out.parent.mkdir(parents=True, exist_ok=True)
+        sources = ['native-renderer/amiga/selector_planar_cache.c',
+                   'native-renderer/amiga/selector_memory.c',
+                   'native-renderer/amiga/selector_cache_test.c',
+                   'native-renderer/scene_renderer.c', 'native-renderer/tile_renderer.c']
+        subprocess.run(['cc', '-std=c99', '-O2', '-Wall', '-Wextra', '-Werror',
+                        *[str(ROOT / x) for x in sources], '-o', str(out)], check=True)
+        result = subprocess.run([str(out)], check=True, capture_output=True, text=True)
+        self.assertIn('4653 invalid-key misses', result.stdout)
+
     def test_palette_count_survives_different_cursor_geometry_count(self):
         spec = importlib.util.spec_from_file_location('selector_export', ROOT/'tools/export-course-selector-assets.py')
         module = importlib.util.module_from_spec(spec)

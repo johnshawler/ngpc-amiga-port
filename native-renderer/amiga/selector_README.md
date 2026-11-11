@@ -45,24 +45,41 @@ causing an unbounded catch-up loop. This makes a long stall visible in reports.
 Rendering uses two complete snapshots and two Chip bitmaps. A displayed frame,
 its palette and exported scene always refer to one immutable source snapshot.
 New input keeps updating the application while rows of the next frame compose.
-The finished bitmap/Copper list is installed at a PAL frame boundary. Palette
+The finished bitmap/Copper list is installed in the safe pre-display PAL blank
+interval, before line 20 and the line 44 display start. Palette
 inversion is applied only at the Copper adapter. Live startup controls were
 verified in the original: window control 0x07, pending background 0x81 then 0x80,
 viewport (80,0,0,152) then (0,0,160,152), zero scrolling and no plane swap.
 
-Exact byte comparisons identify changed tiles and maps. Resolved linked-sprite
-positions, descriptors, palette indices and referenced tiles invalidate affected
-rows. Changed window/scroll/layer controls invalidate the full frame. Unchanged
-rows are copied from the previous complete display, without composing them again.
-No hashes or assumptions about a static cursor authorize reuse. Invalidation
-itself yields to the input pump in bounded chunks. Palette changes still produce
-a new Copper palette even when pixel indices are unchanged.
+The default build has fifteen privately generated planar candidates: three
+courses times five cursor shapes. Offline generation runs the actual native
+application, rejects a full-window candidate without its 28 live cursor sprites,
+and verifies 1,233 baseline-rendered frames covering all normal/accept shapes,
+mixed navigation, and 87 fade/exit fallback states. Runtime cache lookup never
+changes game state or trusts a selection/frame number as proof of a match.
 
-This protects coherent output, **not real-time visual responsiveness**. Complete
-frames can lag input by seconds, and intermediate cursor/fade/random-selection
-animation frames can be skipped. Presses entirely between input polls can also
-be missed. The latest complete scene is correct; every source animation frame
-is not guaranteed to be displayed.
+A hit requires exact controls, both complete map arrays, every sprite record and
+sprite palette index, and all tile bytes referenced by either map or any sprite
+record. Unreferenced tile bytes are irrelevant to the renderer and may retain
+old label data. This avoids both false hits and unnecessary history-dependent
+misses. Palette RGB is separate because cached pixels are pen indices: each
+snapshot still builds its own Copper palette, including inversion. Lookup
+statistics are cumulative; the displayed entry and its lookup duration are
+latched with the presented snapshot.
+
+Any mismatch, including non-full fade viewports, uses the existing renderer.
+Exact dirty-row checks compare changed maps/tiles and resolved linked sprites;
+unchanged rows come from the previous complete display. No hashes authorize
+reuse. Matching, invalidation, cached-copy chunks and palette building yield to
+the input pump. Small 68020 assembly helpers copy/compare exact byte spans,
+without compiler aliasing assumptions or overreads. Tests cover all sixteen
+independent source/destination alignments.
+
+This protects coherent output, **not full-speed presentation**. The measured
+cached selector still responds visually in about half a second. Intermediate
+cursor/fade/random-selection frames can be skipped, and fallback frames can take
+seconds. Presses entirely between input polls can be missed. Every source
+animation frame is not guaranteed to be displayed.
 
 ## Reproduce privately
 
@@ -78,6 +95,7 @@ The build reads the authorized cartridge at
 validated tables and writes the backgrounds, labels, palette sources, fade and
 random tables, and both cursor animations under ignored `build/native-selector/`.
 The exporter refuses output outside this checkout's ignored build directory.
+The build also writes the private exact-key/planar include there.
 The generated include, executable, ADF, screenshots, RAM captures and firmware
 must remain private. There are no original asset bytes in public source.
 
@@ -92,6 +110,18 @@ bash native-renderer/amiga/selector_run.sh cancel
 bash native-renderer/amiga/selector_run.sh random
 ```
 
+For the identical frontend without the planar cache:
+
+```sh
+bash native-renderer/amiga/selector_build.sh --uncached
+bash native-renderer/amiga/selector_run.sh accept --uncached
+bash native-renderer/amiga/selector_run.sh cancel --uncached
+bash native-renderer/amiga/selector_run.sh random --uncached
+python3 tools/compare-selector-performance.py build/native-selector-uncached build/native-selector
+```
+
+The uncached build uses the same memory helpers, presentation timing and hardware
+input test script. Its files stay separate under `build/native-selector-uncached/`.
 Each scenario has its own ignored output directory and native host. Run reports
 include private authored-source manifests. The CPU-target executable has no
 unresolved libc/compiler helper dependencies.
@@ -105,47 +135,57 @@ python3 -m unittest discover -s tests -p test_selector_frontend.py -v
 
 These test joystick decoding, both palette polarities, exact nominal source
 cadence, bounded long stalls, and an exporter regression where the source palette
-group count differs from cursor geometry count. It also checks 384 randomized
-invalidation cases against full
-independent baseline rendering. The script runs host, ASan/UBSan and, when the
+group count differs from cursor geometry count. They check 384 randomized
+invalidation cases against full baseline rendering, plus 4,653 exact-key misses
+across every control/map/sprite/palette-index/referenced-tile byte and 160 fade
+widths. An unreferenced-tile mutation must still hit and render identically. The script runs host, ASan/UBSan and, when the
 tools are available, QEMU m68020 tests.
 
 ## Verification and present performance
 
-The actual target verifier checks initial, right, left and completed frames in
+The actual target verifier checks initial, six mixed-navigation and completed frames in
 all three flows. It independently reconstructs pixels with destination/depth
 logic and checks all 81,920 displayed planar bytes. All 512 palette bytes are
 independently resolved from the cartridge jobs, including the final command 84
 overwrite on acceptance, rather than trusted from target staging. It checks all
-256 AGA palette entries
-and both nibble banks, and every captured RGB pixel, including the border. It
+256 AGA palette entries and both nibble banks, and every captured RGB pixel, including the border. It
 also checks the stock memory/chipset profile, source-update drops and final
 accept/cancel result. The random test must observe the random-delay branch,
 not merely the same final result as ordinary acceptance.
 
 The final measured timings and memory values are in each private scenario's
-`verification.json`. Current source/cursor integration is deliberately slow:
-full coherent composition is about 3.39 seconds, navigation compositions about
-2.82–3.00 seconds, with a measured maximum input-poll gap of about 56.84 ms. There were zero
-dropped logical updates in the three tested flows. These are emulator results,
-not physical-hardware measurements or a full-speed claim.
+`verification.json`. All three cached and all three identical uncached flows pass
+all eight captures, including independently resolved source palettes. No logical
+updates were dropped. These are emulator results, not physical-hardware
+measurements or a full-game speed claim.
 
-Display allocation is exactly 170,000 Chip bytes: two 81,920-byte bitmaps, two
-nonoverlapping 2,304-byte Copper reservations, and report/header space. The
-startup report records Exec `AvailMem(MEMF_CHIP)` before/after that allocation,
-after the executable and its BSS have already loaded. The build prints ELF
-text/data/BSS sizes. Do not confuse explicit display allocation with total
-program/OS memory use. In the final runs, the loaded executable was 50,596
-bytes, with 49,611 bytes ELF text and 69,864 bytes BSS. Exec reported
-1,866,112 free Chip bytes before the display allocation and 1,696,112 afterward.
-This leaves room for the proposed 364,800-byte cache in this bounded slice; it
-does not reserve memory for the unimplemented later game.
+- Cached navigation composition: **0.239–0.260 s**; identical uncached frontend:
+  **2.720–2.727 s**, a measured **10.46–11.38 times** composition improvement.
+- Button-to-verified-visible capture: **500–560 ms**, versus **4,560–4,620 ms**
+  uncached. The capture guard waits for two stable frames; this is not a claim
+  about the first illuminated pixel. Milliseconds use nominal PAL 50 Hz.
+- Maximum observed input-poll gap: **54.19 ms** cached, including startup.
+  Cache lookup costs remain visible in reports, rather than timing only the copy.
+- Cold floppy boot to verified full selector: **35.98 s** cached versus
+  **10.40 s** uncached. The larger linked cache makes startup materially slower.
 
-One proposed next optimization is a strictly keyed, privately generated
-planar cache for the three selection labels and five cursor shapes (15 native
-160x152 frames = 364,800 bytes). Native application updates would still determine
-selection, animation, viewport and palette. Any state outside a proven cache key
-must fall back to the exact renderer; fades require separate validated clipping.
-This could trade available Chip RAM for much faster display changes, but has not
-been implemented or measured here. Later game scenes still need their own
-rendering strategy.
+The historical published checkpoint had 3.385 s full composition and
+2.824–3.004 s navigation. The cache-specific comparison above instead uses an
+uncached build with the same updated copy/presentation helpers, so those other
+improvements are not incorrectly credited to caching.
+
+Display allocation remains exactly 170,000 Chip bytes: two 81,920-byte bitmaps,
+two nonoverlapping 2,304-byte Copper reservations, and report/header space.
+The cache adds **555,120 bytes** of linked static read-only data: 364,800 planar
+bytes and 190,320 exact-key bytes, including alignment padding. It remains
+allocated for the executable's entire lifetime, even after selection finishes.
+A future integrated game needs reclaimable/overlay storage or a new memory
+budget; this checkpoint does not implement either.
+
+The cached executable is 607,080 bytes, with 606,021 ELF text bytes and 69,904 BSS
+bytes. Exec reports **1,139,664 free Chip bytes** after loading it and allocating
+the display. The identical uncached executable is 51,612 bytes and leaves
+1,695,104 Chip bytes. Reports include `AvailMem(MEMF_CHIP)` before and after the
+explicit display allocation; explicit allocation alone is not total program/OS
+memory use. This is memory headroom for the bounded selector, not proof that the
+later game fits. Later gameplay, audio and its rendering strategy remain work.

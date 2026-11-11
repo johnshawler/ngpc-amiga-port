@@ -3,7 +3,14 @@
  * Two coherent display buffers; independently paced input/application updates.
  * Original assets are generated locally into ignored build/, never public. */
 #include "selector_frontend.h"
+#include "selector_memory.h"
 #include "selector_assets.inc"
+#ifdef SELECTOR_PLANAR_CACHE
+#include "selector_planar_cache.h"
+#include "selector_planar.inc"
+static selector_planar_stats planar_stats;
+static unsigned planar_hint;
+#endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 #define CIA(off) (*(volatile uint8_t *)(0xbfd000u+(off)))
 #define REPORT_WORDS 48
@@ -21,7 +28,7 @@ static uint8_t compact[24320];
 static struct snapshot {
     nr_scene scene;
     uint8_t tiles[8192],maps[4096],sprites[256],sprite_pal[64],palette[512],scalars[16];
-    uint32_t update,selection,invert;
+    uint32_t update,selection,invert,cache_index,lookup_ticks;
 } snapshots[2];
 static volatile uint32_t *report;
 static uint8_t *bitmaps[2];
@@ -68,19 +75,18 @@ static unsigned copper(unsigned index)
     for(bank=0;bank<8;bank++)for(low=0;low<2;low++){
         move(&c,0x106,(bank<<13)|(low?0x0200:0));
         for(i=0;i<32;i++)move(&c,0x180+i*2,selector_color(s->palette,bank*32+i,s->invert));
+        pump();
     }
     move(&c,0x106,0);move(&c,0xffff,0xfffe);
     return (unsigned)((uint8_t *)c-(uint8_t *)coppers[index]);
 }
-static void copy_bytes(uint8_t *dst,const uint8_t *src,unsigned size)
-{while(size--)*dst++=*src++;}
 static void snapshot(unsigned index)
 {
     struct snapshot *s=snapshots+index;nr_scene *n=&s->scene;
     ntm_course_application_scene(&app,n);
-    copy_bytes(s->tiles,n->tiles,8192);copy_bytes(s->maps,n->maps,4096);
-    copy_bytes(s->sprites,n->sprites,256);copy_bytes(s->sprite_pal,n->sprite_pal,64);
-    copy_bytes(s->palette,app.palette.palette,512);
+    selector_span_copy(s->tiles,n->tiles,8192);selector_span_copy(s->maps,n->maps,4096);
+    selector_span_copy(s->sprites,n->sprites,256);selector_span_copy(s->sprite_pal,n->sprite_pal,64);
+    selector_span_copy(s->palette,app.palette.palette,512);
     n->tiles=s->tiles;n->maps=s->maps;n->sprites=s->sprites;n->sprite_pal=s->sprite_pal;
     s->update=app.driver.updates;s->selection=app.driver.context.selection;
     /* NGPC control bit7 is the color display's palette inversion flag. */
@@ -93,7 +99,8 @@ static void snapshot(unsigned index)
 static void present(unsigned index,unsigned clen,uint32_t start)
 {
     struct snapshot *s=snapshots+index;uint32_t elapsed;
-    while(beam()!=0)pump();
+    /* Finish before the 0x2c display start, allowing Copper setup in blanking. */
+    while(beam()>=20)pump();
     REG(0x080)=(unsigned)coppers[index]>>16;REG(0x082)=(unsigned)coppers[index];REG(0x088)=0;
     REG(0x096)=0x8380;
     elapsed=ticks()-start;
@@ -103,11 +110,13 @@ static void present(unsigned index,unsigned clen,uint32_t start)
     report[22]=(unsigned)s->tiles;report[23]=(unsigned)s->maps;report[24]=(unsigned)s->sprites;report[25]=(unsigned)s->sprite_pal;
     report[26]=(unsigned)s->palette;report[27]=(unsigned)s->scalars;report[28]=s->invert;
     report[32]=composed_rows;report[33]=reused_rows;
+    report[46]=s->cache_index;report[47]=s->lookup_ticks;
     report[2]=0x52454144;
 }
 void selector_main(uint8_t *block)
 {
-    unsigned index=0,y,p,b,clen;uint32_t start;
+    unsigned index=0,y,p,clen;uint32_t start;
+    int cached=-1;
     uint8_t row[160],dirty[152];nr_bitmap target={compact,sizeof compact,160,152,20};
     report=(volatile uint32_t *)block;
     report[0]=0x4e53454c;report[1]=0x30303031;report[3]=(unsigned)block;
@@ -124,16 +133,38 @@ void selector_main(uint8_t *block)
     REG(0x034)=0xff00; /* POTGO: pull up both second joystick button lines. */
     report[29]=SELECTOR_CIA_HZ;report[30]=ticks();last_tick=ticks();
     for(;;){
-        pump();start=ticks();snapshot(index);pump();
-        selector_dirty_rows_pump(report[13]?&snapshots[index^1].scene:0,&snapshots[index].scene,dirty,pump);pump();
+        pump();start=ticks();snapshot(index);pump();snapshots[index].lookup_ticks=0;
+        #ifdef SELECTOR_PLANAR_CACHE
+        {uint32_t lookup=ticks(),elapsed;
+         cached=selector_planar_find(&snapshots[index].scene,selector_planar_entries,15,planar_hint,&planar_stats,pump);
+         elapsed=ticks()-lookup;if(elapsed>report[44])report[44]=elapsed;snapshots[index].lookup_ticks=elapsed;
+         report[42]=planar_stats.hits;report[43]=planar_stats.misses;report[45]=sizeof selector_planar_entries;
+         if(cached>=0)planar_hint=(unsigned)cached;}
+#endif
+        snapshots[index].cache_index=(uint32_t)cached;
+        if(cached<0)selector_dirty_rows_pump(report[13]?&snapshots[index^1].scene:0,&snapshots[index].scene,dirty,pump);
+        pump();
+#ifdef SELECTOR_PLANAR_CACHE
+        if(cached>=0){
+            const uint8_t *source=selector_planar_entries[cached].planar;
+            for(y=0;y<152;y+=8){
+                unsigned row_y,end=y+8;uint32_t chunk_start=ticks(),elapsed;
+                if(end>152)end=152;
+                for(row_y=y;row_y<end;row_y++)for(p=0;p<8;p++)selector_span_copy(bitmaps[index]+p*10240+(row_y+52)*40+10,source+p*3040+row_y*20,20);
+                reused_rows+=end-y;elapsed=ticks()-chunk_start;
+                if(elapsed>report[15])report[15]=elapsed;
+                pump();
+            }
+        }else
+#endif
         for(y=0;y<152;y++){
             uint32_t row_start=ticks(),elapsed;
             if(dirty[y]){
                 if(nr_scene_row_cached(&snapshots[index].scene,y,row,&composition)<0 || nr_store_scene_row_packed(&target,y,row)<0){report[2]=0x45525221;return;}
-                for(p=0;p<8;p++)for(b=0;b<20;b++)bitmaps[index][p*10240+(y+52)*40+10+b]=compact[p*3040+y*20+b];
+                for(p=0;p<8;p++)selector_span_copy(bitmaps[index]+p*10240+(y+52)*40+10,compact+p*3040+y*20,20);
                 composed_rows++;
             }else{
-                for(p=0;p<8;p++)for(b=0;b<20;b++){unsigned at=p*10240+(y+52)*40+10+b;bitmaps[index][at]=bitmaps[index^1][at];}
+                for(p=0;p<8;p++){unsigned at=p*10240+(y+52)*40+10;selector_span_copy(bitmaps[index]+at,bitmaps[index^1]+at,20);}
                 reused_rows++;
             }
             elapsed=ticks()-row_start;if(elapsed>report[15])report[15]=elapsed;

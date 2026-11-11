@@ -23,16 +23,33 @@ static void capture(const char *label){
  snprintf(name,sizeof name,"%s.%s.bin",chip_path,label);f=fopen(name,"wb");if(!f)abort();if(fwrite(chip,1,chip_size,f)!=chip_size)abort();fclose(f);
  printf("STAGE %s frame=%u update=%u selection=%u shown=%u dropped=%u\n",label,frame_number,word(7),word(8),word(21),word(12));fflush(stdout);
 }
+static unsigned navigation, press_frame, first_report_frame;
+static const unsigned destinations[]={2,1,0,1,2,1};
+static const char *const labels[]={"right","left","japan","return","repeat","return2"};
+static void press_navigation(void){
+ unsigned direction=destinations[navigation]>word(8)?RETRO_DEVICE_ID_JOYPAD_RIGHT:RETRO_DEVICE_ID_JOYPAD_LEFT;
+ buttons=1u<<direction;stage_update=word(7);press_frame=frame_number;first_report_frame=0;
+ printf("INPUT %s frame=%u target=%u\n",labels[navigation],frame_number,destinations[navigation]);
+}
 static void advance(void){
  if(!chip||chip_size!=2097152)return;
  if(!marker){for(unsigned n=4;n+192<chip_size;n+=4)if(!memcmp((const uint8_t *)chip+n,"NSEL0001",8)){marker=n;break;}}
  if(!marker||word(2)!=0x52454144)return;
  unsigned present=word(13);if(present==last_present)stable_frames++;else stable_frames=0;last_present=present;
- if(stage==0 && word(19)>=8 && stable_frames>=2){capture("initial");buttons=1u<<RETRO_DEVICE_ID_JOYPAD_RIGHT;stage_update=word(7);stage=1;}
+ if((stage==1 || stage==2) && !first_report_frame && word(21)==destinations[navigation])first_report_frame=frame_number;
+ if(stage==0 && word(19)>=8 && stable_frames>=2){capture("initial");press_navigation();stage=1;}
  else if(stage==1 && word(7)>=stage_update+5){buttons=0;stage=2;}
- else if(stage==2 && word(21)==2 && stable_frames>=2){capture("right");buttons=1u<<RETRO_DEVICE_ID_JOYPAD_LEFT;stage_update=word(7);stage=3;}
- else if(stage==3 && word(7)>=stage_update+5){buttons=0;stage=4;}
- else if(stage==4 && word(21)==1 && stable_frames>=2){capture("left");buttons=1u<<(strcmp(scenario,"cancel")?RETRO_DEVICE_ID_JOYPAD_B:RETRO_DEVICE_ID_JOYPAD_A);if(!strcmp(scenario,"random"))buttons|=1u<<RETRO_DEVICE_ID_JOYPAD_UP;stage_update=word(7);stage=5;}
+ else if(stage==2 && word(21)==destinations[navigation] && stable_frames>=2){
+  capture(labels[navigation]);
+  printf("LATENCY %s input_frame=%u first_report_frame=%u verified_frame=%u reported_frames=%u verified_frames=%u\n",labels[navigation],press_frame,first_report_frame,frame_number,first_report_frame-press_frame,frame_number-press_frame);
+  navigation++;
+  if(navigation<sizeof destinations/sizeof destinations[0]){press_navigation();stage=1;}
+  else{
+   buttons=1u<<(strcmp(scenario,"cancel")?RETRO_DEVICE_ID_JOYPAD_B:RETRO_DEVICE_ID_JOYPAD_A);
+   if(!strcmp(scenario,"random"))buttons|=1u<<RETRO_DEVICE_ID_JOYPAD_UP;
+   stage_update=word(7);stage=5;
+  }
+ }
  else if(stage==5 && word(7)>=stage_update+5){buttons=0;stage=6;}
  else if(stage==6 && !word(9)){stage_frame=frame_number;stage=7;}
  else if(stage==7 && frame_number>stage_frame+400 && stable_frames>=2){capture("finished");stage=8;}
