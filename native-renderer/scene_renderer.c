@@ -256,3 +256,144 @@ int nr_scene_row_reused(const nr_scene *s,unsigned y,uint8_t out[160],nr_composi
     for(i=0;i<160;i++)out[i]=c->pixels[y][i];
     return 0;
 }
+
+static __attribute__((always_inline)) inline unsigned compact_even(unsigned v)
+{
+    v&=0x5555;v=(v|(v>>1))&0x3333;v=(v|(v>>2))&0x0f0f;return (v|(v>>4))&255;
+}
+static __attribute__((always_inline)) inline unsigned reverse8(unsigned v)
+{
+    v=((v&0x55)<<1)|((v>>1)&0x55);v=((v&0x33)<<2)|((v>>2)&0x33);return ((v<<4)|(v>>4))&255;
+}
+static void planar_tile(const nr_scene *s,nr_bitmap *d,unsigned y,unsigned desc,int x,unsigned row,unsigned pal)
+{
+    int first=(int)s->window_x-x,last=(int)s->window_x+s->window_w;
+    unsigned word,b0,b1,opaque,p,offset,mask,lo,hi;
+    size_t size=(size_t)d->stride*152;
+    if(last>160)last=160;
+    last-=x;if(first<0)first=0;if(last>8)last=8;
+    if(first>=last)return;
+    if(desc&0x4000)row=7-row;
+    word=le16(s->tiles+(desc&511)*16+row*2);
+    b0=compact_even(word);b1=compact_even(word>>1);
+    if(desc&0x8000){b0=reverse8(b0);b1=reverse8(b1);}
+    opaque=(b0|b1)&(255u>>first)&(255u<<(8-last));
+    if(!opaque)return;
+    b0&=opaque;b1&=opaque;
+    if(x<0) {mask=(opaque<<(-x+8))&65535;lo=(b0<<(-x+8))&65535;hi=(b1<<(-x+8))&65535;offset=0;}
+    else {unsigned shift=x&7;mask=(opaque<<8)>>shift;lo=(b0<<8)>>shift;hi=(b1<<8)>>shift;offset=(unsigned)x/8;}
+    offset+=y*d->stride;
+    for(p=0;p<8;p++) {
+        unsigned bits=p==0?lo:p==1?hi:(pal&(1u<<p))?mask:0;
+        uint8_t *dst=d->data+p*size+offset;
+        if(mask&0xff00)dst[0]=(uint8_t)((dst[0]&~(mask>>8))|(bits>>8));
+        if(mask&255)dst[1]=(uint8_t)((dst[1]&~mask)|bits);
+    }
+}
+static void planar_plane(const nr_scene *s,unsigned n,unsigned y,nr_bitmap *d)
+{
+    unsigned col,sy=(y+s->scroll_y[n])&255;
+    for(col=0;col<32;col++) {
+        int x=(int)((col*8-s->scroll_x[n])&255);
+        unsigned desc;
+        if(x>248)x-=256;
+        if(x>=160 || x>=(int)s->window_x+s->window_w || x+8<=s->window_x)continue;
+        desc=le16(s->maps+n*2048+((sy/8)*32+col)*2);
+        planar_tile(s,d,y,desc,x,sy&7,64+n*64+((desc>>9)&15)*4);
+    }
+}
+int nr_scene_row_planar(const nr_scene *s,unsigned y,nr_bitmap *d,nr_scene_cache *c)
+{
+    unsigned byte,p,depth,out,bg,active,left,right;
+    size_t size;
+    if(!s || !c || !s->tiles || !s->maps || !s->sprites || !s->sprite_pal || !valid_scene_bitmap(d,y,s->tiles))return -1;
+    size=(size_t)d->stride*152;out=248+(s->outside&7);bg=240+(s->background&7);
+    active=y>=s->window_y && y<(unsigned)s->window_y+s->window_h;
+    left=s->window_x;right=left+s->window_w;if(right>160)right=160;
+    for(byte=0;byte<20;byte++) {
+        unsigned mask=0,i;
+        if(active)for(i=0;i<8;i++)if(byte*8+i>=left && byte*8+i<right)mask|=128u>>i;
+        for(p=0;p<8;p++)d->data[p*size+y*d->stride+byte]=(uint8_t)(((out&(1u<<p))?~mask:0)|((bg&(1u<<p))?mask:0));
+    }
+    if(!active)return 0;
+    prepare_sprites(s,c);
+    for(depth=1;depth<=3;depth++) {
+        unsigned bucket=y*3+depth-1,i;
+        for(i=c->offsets[bucket];i<c->offsets[bucket+1];i++) {
+            unsigned j=c->entries[i];
+            planar_tile(s,d,y,c->desc[j],c->x[j],y-c->y[j],(s->sprite_pal[j]&15)*4);
+        }
+        if(depth<3)planar_plane(s,s->swap?(depth-1):(2-depth),y,d);
+    }
+    return 0;
+}
+
+static const uint32_t plane_colors[16]={0x00000000U,0x000000ffU,0x0000ff00U,0x0000ffffU,0x00ff0000U,0x00ff00ffU,0x00ffff00U,0x00ffffffU,0xff000000U,0xff0000ffU,0xff00ff00U,0xff00ffffU,0xffff0000U,0xffff00ffU,0xffffff00U,0xffffffffU};
+static __attribute__((always_inline)) inline void merge_words(uint32_t *dst,unsigned mask,unsigned b0,unsigned b1,unsigned pal)
+{
+    uint32_t alpha=mask|(mask<<8);alpha|=alpha<<16;
+    dst[0]=(dst[0]&~alpha)|b0|(b1<<8)|(plane_colors[pal&12]&alpha);
+    dst[1]=(dst[1]&~alpha)|(plane_colors[pal>>4]&alpha);
+}
+static __attribute__((always_inline)) inline void words_tile(const nr_scene *s,uint32_t *out,unsigned desc,int x,unsigned row,unsigned pal)
+{
+    int first=(int)s->window_x-x,last=(int)s->window_x+s->window_w;
+    unsigned word,b0,b1,opaque,offset,mask,lo,hi;
+    if(last>160)last=160;
+    last-=x;if(first<0)first=0;if(last>8)last=8;
+    if(first>=last)return;
+    if(desc&0x4000)row=7-row;
+    word=le16(s->tiles+(desc&511)*16+row*2);
+    b0=compact_even(word);b1=compact_even(word>>1);
+    if(desc&0x8000){b0=reverse8(b0);b1=reverse8(b1);}
+    opaque=(b0|b1)&(255u>>first)&(255u<<(8-last));
+    if(!opaque)return;
+    b0&=opaque;b1&=opaque;
+    if(x<0) {mask=(opaque<<(-x+8))&65535;lo=(b0<<(-x+8))&65535;hi=(b1<<(-x+8))&65535;offset=0;}
+    else {unsigned shift=x&7;mask=(opaque<<8)>>shift;lo=(b0<<8)>>shift;hi=(b1<<8)>>shift;offset=((unsigned)x/8)*2;}
+    if(mask&0xff00)merge_words(out+offset,mask>>8,lo>>8,hi>>8,pal);
+    if(mask&255)merge_words(out+offset+2,mask&255,lo&255,hi&255,pal);
+}
+static __attribute__((always_inline)) inline void words_plane(const nr_scene *s,unsigned n,unsigned y,uint32_t *out)
+{
+    unsigned col,sy=(y+s->scroll_y[n])&255;
+    for(col=0;col<32;col++) {
+        int x=(int)((col*8-s->scroll_x[n])&255);unsigned desc;
+        if(x>248)x-=256;
+        if(x>=160 || x>=(int)s->window_x+s->window_w || x+8<=s->window_x)continue;
+        desc=le16(s->maps+n*2048+((sy/8)*32+col)*2);
+        words_tile(s,out,desc,x,sy&7,64+n*64+((desc>>9)&15)*4);
+    }
+}
+int nr_scene_row_planar_words(const nr_scene *s,unsigned y,nr_bitmap *d,nr_scene_cache *c)
+{
+    uint32_t words[40];unsigned b,depth,out,bg,active;
+    size_t size;
+    if(!s || !c || !s->tiles || !s->maps || !s->sprites || !s->sprite_pal || !valid_scene_bitmap(d,y,s->tiles))return -1;
+    size=(size_t)d->stride*152;out=248+(s->outside&7);bg=240+(s->background&7);
+    active=y>=s->window_y && y<(unsigned)s->window_y+s->window_h;
+    for(b=0;b<20;b++) {
+        uint32_t alpha=0;int first=(int)s->window_x-(int)b*8,last=(int)s->window_x+s->window_w-(int)b*8;
+        if(first<0)first=0;
+        if(last>8)last=8;
+        if(active && first<last) {alpha=(255u>>first)&(255u<<(8-last));alpha|=alpha<<8;alpha|=alpha<<16;}
+        words[b*2]=(plane_colors[out&15]&~alpha)|(plane_colors[bg&15]&alpha);
+        words[b*2+1]=(plane_colors[out>>4]&~alpha)|(plane_colors[bg>>4]&alpha);
+    }
+    if(active) {
+        prepare_sprites(s,c);
+        for(depth=1;depth<=3;depth++) {
+            unsigned bucket=y*3+depth-1,i;
+            for(i=c->offsets[bucket];i<c->offsets[bucket+1];i++) {
+                unsigned j=c->entries[i];words_tile(s,words,c->desc[j],c->x[j],y-c->y[j],(s->sprite_pal[j]&15)*4);
+            }
+            if(depth<3)words_plane(s,s->swap?(depth-1):(2-depth),y,words);
+        }
+    }
+    for(b=0;b<20;b++) {
+        uint8_t *dst=d->data+y*d->stride+b;uint32_t lo=words[b*2],hi=words[b*2+1];
+        dst[0]=(uint8_t)lo;dst[size]=(uint8_t)(lo>>8);dst[size*2]=(uint8_t)(lo>>16);dst[size*3]=(uint8_t)(lo>>24);
+        dst[size*4]=(uint8_t)hi;dst[size*5]=(uint8_t)(hi>>8);dst[size*6]=(uint8_t)(hi>>16);dst[size*7]=(uint8_t)(hi>>24);
+    }
+    return 0;
+}

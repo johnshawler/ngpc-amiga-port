@@ -71,7 +71,7 @@ int main(void)
         assert(cache.offsets[456]<=512);
         assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
         assert(nr_scene_row_reused(&s,y,cached,&memo)==0);assert(memcmp(cached,expected,160)==0);
-        memset(bitmap,0xa5,sizeof bitmap);assert(nr_store_scene_row(&dst,y,actual)==0);
+        memset(bitmap,0xa5,sizeof bitmap);assert(nr_scene_row_planar_words(&s,y,&dst,&cache)==0);
         for(p=0;p<8;p++) for(i=0;i<152;i++) for(x=0;x<24;x++) {
             unsigned value=0xa5;
             if(i==y && x<20) {unsigned b;value=0;for(b=0;b<8;b++) value=(value<<1)|((expected[x*8+b]>>p)&1);}

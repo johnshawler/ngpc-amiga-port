@@ -5,7 +5,7 @@
 static nr_scene_cache sprite_cache; /* static zero initialization = invalid */
 static nr_planar_cache planar_cache;
 static nr_composition_cache composition_cache;
-static uint8_t scalar_bitmap[24320],dirty_bitmap[24320];
+static uint8_t scalar_bitmap[24320],dirty_bitmap[24320],direct_bitmap[24320],words_bitmap[24320];
 static uint64_t scene_rows, scene_pixels, scene_mismatches, scene_skipped;
 __attribute__((visibility("default")))
 uint64_t retro_reference_scene_count(unsigned n)
@@ -25,6 +25,8 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
     uint8_t pens[160],cached[160],reused[160];
     unsigned x,p;
     nr_bitmap scalar={scalar_bitmap,sizeof scalar_bitmap,160,152,20};
+    nr_bitmap words={words_bitmap,sizeof words_bitmap,160,152,20};
+    nr_bitmap direct={direct_bitmap,sizeof direct_bitmap,160,152,20};
     nr_bitmap dirty={dirty_bitmap,sizeof dirty_bitmap,160,152,20};
     if(gfx->K2GE_MODE || gfx->layer_enable!=7) {scene_skipped++;return;}
     s.tiles=gfx->CharacterRAM;s.maps=gfx->ScrollVRAM;
@@ -42,9 +44,11 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
     for(x=0;x<160;x++)if(reused[x]!=pens[x])scene_mismatches++;
     nr_store_scene_row(&scalar,gfx->raster_line,pens);
     nr_store_scene_row_dirty(&dirty,gfx->raster_line,cached,&planar_cache);
+    nr_scene_row_planar(&s,gfx->raster_line,&direct,&sprite_cache);
+    nr_scene_row_planar_words(&s,gfx->raster_line,&words,&sprite_cache);
     for(p=0;p<8;p++)for(x=0;x<20;x++) {
         unsigned off=p*3040+gfx->raster_line*20+x;
-        if(scalar_bitmap[off]!=dirty_bitmap[off])scene_mismatches++;
+        if(scalar_bitmap[off]!=dirty_bitmap[off] || scalar_bitmap[off]!=direct_bitmap[off] || scalar_bitmap[off]!=words_bitmap[off])scene_mismatches++;
     }
     scene_rows++;
     for(x=0;x<160;x++) {

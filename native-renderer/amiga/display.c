@@ -10,6 +10,8 @@
 #include "planar_benchmark.inc"
 #elif defined(NR_COMPOSITION_BENCH)
 #include "composition_benchmark.inc"
+#elif defined(NR_DIRECT_BENCH)
+#include "direct_benchmark.inc"
 #else
 #include "benchmark.inc"
 #endif

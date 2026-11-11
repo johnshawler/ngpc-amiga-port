@@ -68,4 +68,8 @@ typedef struct {
 } nr_composition_cache;
 void nr_composition_cache_init(nr_composition_cache *cache);
 int nr_scene_row_reused(const nr_scene *scene,unsigned y,uint8_t out[160],nr_composition_cache *cache);
+/* Direct masked planar composition, no chunky row or final conversion.
+ * Same live color scene semantics, same 160x152 bitmap contract. */
+int nr_scene_row_planar(const nr_scene *scene,unsigned y,nr_bitmap *dst,nr_scene_cache *sprites);
+int nr_scene_row_planar_words(const nr_scene *scene,unsigned y,nr_bitmap *dst,nr_scene_cache *sprites);
 #endif

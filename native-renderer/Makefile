@@ -47,3 +47,16 @@ planar-m68020: | $(BUILD)
 	test -z "$$($(CROSS_NM) -u $(BUILD)/scene-renderer-68020.o)"
 	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c test_planar.c -o $(BUILD)/test-planar-68020
 	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-planar-68020
+
+.PHONY: direct direct-sanitize direct-m68020
+direct: | $(BUILD)
+	$(CC) $(FLAGS) scene_renderer.c test_direct.c -o $(BUILD)/test-direct
+	$(BUILD)/test-direct
+direct-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -g -fsanitize=address,undefined -fno-omit-frame-pointer scene_renderer.c test_direct.c -o $(BUILD)/test-direct-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-direct-sanitize
+direct-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c scene_renderer.c -o $(BUILD)/scene-renderer-68020.o
+	test -z "$$($(CROSS_NM) -u $(BUILD)/scene-renderer-68020.o)"
+	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c test_direct.c -o $(BUILD)/test-direct-68020
+	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-direct-68020
