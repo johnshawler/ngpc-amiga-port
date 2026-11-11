@@ -11,7 +11,6 @@ import json
 import re
 import struct
 from pathlib import Path
-from PIL import Image, ImageChops
 
 
 def expected(ram, w):
@@ -77,6 +76,8 @@ def palette_from_cartridge(rom, completed):
 
 
 def verify(capture,chip,source_palette,marker_bytes=b'NSEL0001',report_bytes=256):
+    # Pure resource decoders remain usable in cartridge-free CI without Pillow.
+    from PIL import Image, ImageChops
     ram=chip.read_bytes();assert len(ram)==2097152
     marker=ram.find(marker_bytes);assert marker>=0 and ram.find(marker_bytes,marker+1)<0
     w=struct.unpack_from('>48I',ram,marker)

@@ -74,6 +74,13 @@ class RoundFrontendTests(unittest.TestCase):
         BUILD.mkdir(parents=True, exist_ok=True)
 
     @unittest.skipUnless(shutil.which('cc'), 'host compiler unavailable')
+    def test_resource_decoder_import_without_site_packages(self):
+        # -S excludes installed Pillow; resource-only checks must still import.
+        subprocess.run([sys.executable, '-S', '-c',
+                        "import sys; sys.path.insert(0, sys.argv[1]); "
+                        "from round_verify import Cartridge; assert 'PIL' not in sys.modules",
+                        str(ROOT / 'native-renderer/amiga')], check=True)
+
     def test_synthetic_round_application_and_private_copy(self):
         names = 'input_state course_choice task_lifecycle task_allocation random_byte viewport game_services course_parent course_screen course_driver course_palette course_initialization course_cursor course_application course_intro course_title round_record round_prepare course_intro_application'.split()
         sources = [str(ROOT/'native-game'/(name + '.c')) for name in names]
