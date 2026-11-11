@@ -5,6 +5,9 @@
 #include "scene_fixture.inc"
 #endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
+#ifdef NR_BENCH
+#include "benchmark.inc"
+#endif
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=reg;*(*c)++=value;}
 void display_prepare(uint8_t *block)
 {
@@ -52,6 +55,9 @@ void display_prepare(uint8_t *block)
     REG(0x09a)=0x7fff;REG(0x09c)=0x7fff;REG(0x096)=0x7fff;
     REG(0x080)=(unsigned)copper>>16;REG(0x082)=(unsigned)copper;
     REG(0x088)=0;REG(0x096)=0x8380;
+#ifdef NR_BENCH
+    run_benchmark(block,tiles);
+#endif
     ((volatile uint32_t *)block)[7]=0x52454144; /* READY */
 }
 void *memset(void *p,int value,size_t size){unsigned char *s=p;while(size--)*s++=(unsigned char)value;return p;}
