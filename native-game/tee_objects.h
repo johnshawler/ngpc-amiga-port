@@ -32,8 +32,8 @@ int ntm_tee_object_remove(ntm_display_reset_state *display,ntm_course_cursor *ob
 /* Display reset with only record ID/tag synchronization; all other record and
  * engine state is deliberately retained, just as original2006cf. */
 int ntm_tee_objects_reset(ntm_display_reset_state *display,ntm_course_cursor objects[32]);
-/* Original201192 then200c7b. Supports color-mode tee tags29..32/index52 and first-tee tag24/index56,
- * their eight animation selections, at most two noncollision components per
+/* Original201192 then200c7b. Supports color-mode tee tags29..32/index52 first-tee tag24/index56 and shot tag5/indices68,72,76,
+ * their bounded animation selections, at most two noncollision components per
  * frame, empty sentinel shapes, flips, clipping, freeze/restart/removal.
  * Hide is supported for single-component frames only; hidden multi-component
  * frames follow a different original parser and are rejected.

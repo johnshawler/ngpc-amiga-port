@@ -146,5 +146,11 @@ int main(void)
             other.animations[i/4].data=0;bad_tail();
         }else assert(ntm_tee_object_register(&d,c+11)==-1);
     }
+    for(j=68;j<=76;j+=4)for(i=0;i<160;i++) {
+        start(0);c[4].tag=5;c[4].width=(uint16_t)j;c[4].velocity=(uint16_t)i;c[4].tile=156;
+        if(i<=68 && !(i&3)){assets.animations[i/4]=assets.animations[3];assert(!ntm_tee_object_register(&d,c+4));tail();head();assets.animations[i/4].data=0;bad_tail();}
+        else assert(ntm_tee_object_register(&d,c+4)==-1);
+    }
+    start(0);c[4].tag=5;c[4].width=52;c[4].velocity=0;assert(ntm_tee_object_register(&d,c+4)==-1);
     puts("PASS tee objects:65536 flags/delay pairs,131072 clipping positions,32-object order/removal,65 queue occupancies,component state,resource identity,malformed atomic rejection");return 0;
 }

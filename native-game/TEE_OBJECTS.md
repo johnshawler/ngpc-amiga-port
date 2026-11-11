@@ -140,3 +140,21 @@ comparison. The resource resolver is authored code, not embedded game art.
 This service does not by itself implement the banner's task lifecycle or its
 per-scanline plane-1 scrolling. Existing hardware evidence at checkpoint 299f589
 uses its original eight-slot asset layout and is not a new-build measurement.
+
+## First-shot scene object
+
+Normal first-shot setup accepts tag 5, indices 68/72/76 and animation offsets
+0,4,...68 for the three courses and eighteen holes. This is the original slot-4
+object registered by 209e3a. Registration initially uses descriptor index 68 and
+velocity 0, then the producer installs the selected course and hole. Its tile
+base is 156, which is not its animation velocity. No asset-layout or generic
+parser change is required. Other tag-5 index/velocity combinations are rejected.
+
+`bash tools/check-aim-objects.sh` checks the actual resources for all 54 course/
+hole combinations across 1,080 cases / 21,600 tail/head rounds, including flips,
+freeze/restart, clipping and removal. It compares all
+nonstack RAM, object/list/bounds state, queues, both sprite banks and palettes,
+all tiles and hardware sprite data. Public tests check all 160 candidate
+velocity offsets for each supported index and missing-resource rejection.
+Existing tee/banner services remain separate regression gates. This service
+evidence does not establish a playable shot, scene initialization or target speed.
