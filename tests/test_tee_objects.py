@@ -18,3 +18,4 @@ class TeeObjectTests(unittest.TestCase):
    result=subprocess.run([exe],capture_output=True,text=True,check=True)
    self.assertIn('65536',result.stdout)
    self.assertIn('131072',result.stdout)
+   self.assertIn('10 aim tags',result.stdout)

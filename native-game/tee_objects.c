@@ -12,7 +12,22 @@ static int display_valid(const ntm_display_reset_state *d)
 static int tag_valid(const ntm_course_cursor *c)
 {
     if(c->tag==5)return c->width>=68 && c->width<=76 && !(c->width&3) && c->velocity<=68 && !(c->velocity&3);
-    if(c->tag==24)return c->width==56 && (c->velocity==60 || c->velocity==148 || c->velocity==152 || c->velocity==156);
+    if(c->width==56) {
+        switch(c->tag) {
+        case 1:return c->velocity==8;
+        case 2:return c->velocity==44;
+        case 3:return c->velocity==40;
+        case 4:return c->velocity==48;
+        case 6:return c->velocity==120;
+        case 7:return c->velocity==52;
+        case 8:return c->velocity==56;
+        case 9:return c->velocity==128;
+        case 10:return c->velocity==124;
+        case 11:return c->velocity==132;
+        case 24:return c->velocity==60 || c->velocity==148 || c->velocity==152 || c->velocity==156;
+        default:return 0;
+        }
+    }
     if(c->width!=52)return 0;
     if(c->tag==29)return c->velocity==0;
     if(c->tag==30)return c->velocity==12;
@@ -114,7 +129,7 @@ static int plan_object(const ntm_tee_object_engine *e,const ntm_course_cursor *c
         if((old&32) && !(shape&32768))return 0;
         if(!shape_valid(a->shapes,a->shapes_size,a->tiles,a->tiles_size,shape&32767,&n))return 0;
         /* The original empty marker skips the component offset bytes. Only
-         * terminal empty shapes occur in the supported tee animations. */
+         * terminal empty shapes occur in the supported animations. */
         if(!n && !(shape&32768))return 0;
         total+=n;if((unsigned)c->tile+total>512)return 0;
         p->component[k]=(uint16_t)component;p->shape[k]=(uint16_t)(shape&32767);p->count[k]=(uint8_t)n;p->components++;

@@ -158,3 +158,20 @@ all tiles and hardware sprite data. Public tests check all 160 candidate
 velocity offsets for each supported index and missing-resource rejection.
 Existing tee/banner services remain separate regression gates. This service
 evidence does not establish a playable shot, scene initialization or target speed.
+
+## Shot scene objects (recovery continuation)
+
+The bounded native object engine also accepts genuine scene descriptors for
+ball/marker/gauge tags 1..4 and 6..11 at resource index 56, with each exact
+velocity selector checked. `reference/aim_object_assets.py:resolve_scene`
+resolves the ten selections from a private user-supplied cartridge. No extracted
+art or cartridge bytes are stored in the repository.
+
+The unchanged-original oracle `reference/compare_aim_scene_objects.py` passed
+537 cases and 11,779 tail/head rounds, including the optional second ball,
+all object records, sorted list and bounds, both sprite banks/palettes, FIFO
+jobs, and complete hardware tile/sprite spans. Prior tee, banner and panorama
+oracles passed another 1,442 cases and 33,468 rounds. Host, ASan/UBSan,
+m68020/QEMU and freestanding checks passed. These are component equivalence
+tests, not evidence of interactive golf or game frame rate. Scene producers,
+child tasks and the stock scene-opening frontend are separate integration gates.

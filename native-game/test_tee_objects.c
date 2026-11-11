@@ -40,6 +40,8 @@ static void unchanged(void){assert(!memcmp(&e,&saved_e,sizeof e));assert(!memcmp
 static void bad_tail(void){save();assert(ntm_tee_objects_tail(&e,c,&d,x,scroll,&global,refs)==-1);unchanged();}
 int main(void)
 {
+    static const uint16_t scene_tags[]={1,2,3,4,6,7,8,9,10,11};
+    static const uint16_t scene_selections[]={8,44,40,48,120,52,56,128,124,132};
     unsigned i,j,f,delay;
     for(i=0;i<32;i++){source[i]=(uint8_t)(i*13);other_source[i]=(uint8_t)(255-i*7);}
     start(4);c[0].second=1;c[1].second=3;c[2].second=0;c[3].second=3;
@@ -152,5 +154,30 @@ int main(void)
         else assert(ntm_tee_object_register(&d,c+4)==-1);
     }
     start(0);c[4].tag=5;c[4].width=52;c[4].velocity=0;assert(ntm_tee_object_register(&d,c+4)==-1);
-    puts("PASS tee objects:65536 flags/delay pairs,131072 clipping positions,32-object order/removal,65 queue occupancies,component state,resource identity,malformed atomic rejection");return 0;
+    /* Actual initial-aim contracts, including the second ball in slot17.
+     * Each tag accepts only its proven index/selection pair, not the whole
+     * index56 resource family. Registration rejection is atomic as well. */
+    for(j=0;j<sizeof scene_tags/sizeof scene_tags[0];j++) {
+        for(i=0;i<160;i++) {
+            start(0);c[17].tag=scene_tags[j];c[17].width=56;c[17].velocity=(uint16_t)i;
+            if(i==scene_selections[j]) {
+                other.animations[i/4]=other.animations[3];
+                assert(!ntm_tee_object_register(&d,c+17));tail();head();
+                other.animations[i/4].data=0;bad_tail();
+            }else{save();assert(ntm_tee_object_register(&d,c+17)==-1);unchanged();}
+        }
+        for(i=0;i<80;i++)if(i!=56) {
+            start(0);c[17].tag=scene_tags[j];c[17].width=(uint16_t)i;c[17].velocity=scene_selections[j];
+            save();assert(ntm_tee_object_register(&d,c+17)==-1);unchanged();
+        }
+        for(f=0;f<256;f++) {
+            start(0);c[17].tag=scene_tags[j];c[17].width=56;c[17].velocity=scene_selections[j];
+            other.animations[c[17].velocity/4]=other.animations[3];
+            assert(!ntm_tee_object_register(&d,c+17));c[17].flags=(uint8_t)f;e.delay[17]=2;
+            tail();head();
+            assert(d.zero_flags[8]==!(f&16));
+            assert(d.zero_flags[13]==!(f&48));
+        }
+    }
+    puts("PASS tee objects:65536 flags/delay pairs,131072 clipping positions,32-object order/removal,65 queue occupancies,component state,resource identity,10 aim tags,malformed atomic rejection");return 0;
 }
