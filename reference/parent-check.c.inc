@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later. Native parent state differential test. */
+#include "random_byte.c"
 #include "course_parent.c"
 static uint64_t parent_cases;
 static int parent_renderer(ntm_task_context *c,ntm_task *t){(void)c;(void)t;
@@ -9,6 +10,10 @@ static int parent_cancel(ntm_task_context *c,ntm_task *t){(void)c;(void)t;
     return 0;}
 static int parent_accept(ntm_task_context *c,ntm_task *t){(void)c;(void)t;
     return 0;}
+static int parent_random_delay(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
+static int parent_random_cycle(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
+static int parent_fade(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
+static int parent_accept_setup(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
 static ntm_task parent_nodes[5];
 static const uint32_t parent_addresses[5]={0x6000,0x6100,0x6200,0x6300,0x4ee6};
 static uint32_t parent_pointer(ntm_task *node)
@@ -23,6 +28,10 @@ static uint32_t parent_callback(ntm_task_callback cb)
     if(cb==parent_wait)return 0x2093b8;
     if(cb==parent_cancel)return 0x2093ed;
     if(cb==parent_accept)return 0x2094cb;
+    if(cb==parent_random_delay)return 0x209485;
+    if(cb==parent_random_cycle)return 0x209496;
+    if(cb==parent_fade)return 0x209416;
+    if(cb==parent_accept_setup)return 0x2094dc;
     if(cb==ntm_course_task)return 0x209536;
     return 0;
 }
@@ -34,15 +43,17 @@ static void parent_serialize(ntm_task_context *c,ntm_course_parent_state *s)
         ntm_task *n=parent_nodes+i;uint32_t a=parent_addresses[i];
         lifecycle_write(a,parent_callback(n->callback));lifecycle_write(a+4,parent_pointer(n->previous));
         lifecycle_write(a+8,parent_pointer(n->next));lifecycle_write(a+12,parent_pointer(n->owner));
-        parent_byte(a+16,n->priority);parent_byte(a+17,n->result);parent_byte(a+18,n->flags);parent_word(a+20,n->delay);
+        parent_byte(a+16,n->priority);parent_byte(a+17,n->result);parent_byte(a+18,n->flags);parent_byte(a+19,n->substate);parent_word(a+20,n->delay);
     }
     lifecycle_write(0x5706,parent_pointer(c->free_head));parent_word(0x4545,s->global_word);
-    parent_byte(0x454b,s->global_flags);parent_byte(0x4113,s->random_remaining);
+    parent_byte(0x40fb,c->selection);parent_byte(0x4204,s->mapped_course);parent_byte(0x454b,s->global_flags);parent_byte(0x4113,s->random_remaining);
 }
 static void parent_setup(ntm_task_context *c,ntm_course_parent_state *s,unsigned priority,unsigned seed,unsigned pool)
 {
     unsigned i;memset(parent_nodes,0,sizeof parent_nodes);memset(c,0,sizeof *c);memset(s,0,sizeof *s);
     s->wait_callback=parent_wait;s->cancel_delay_callback=parent_cancel;s->accept_delay_callback=parent_accept;
+    s->random_delay_callback=parent_random_delay;s->random_cycle_callback=parent_random_cycle;
+    s->fade_callback=parent_fade;s->setup_callback=parent_accept_setup;
     s->global_word=(uint16_t)(seed*257);s->global_flags=(uint8_t)seed;s->random_remaining=(uint8_t)(seed^0xa5);
     for(i=0;i<5;i++){parent_nodes[i].result=(uint8_t)(seed+i);parent_nodes[i].flags=(uint8_t)(seed^i);parent_nodes[i].delay=(uint16_t)(seed*37+i);}
     parent_nodes[0].priority=parent_nodes[1].priority=(uint8_t)priority;

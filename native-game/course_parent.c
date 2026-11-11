@@ -29,6 +29,12 @@ int ntm_course_parent_resume(ntm_task_context *context,ntm_task *parent,
         state->phase=NTM_PARENT_CANCEL_RENDER;return NTM_PARENT_RENDER;
     case NTM_PARENT_ACCEPT_SOUND:
         state->phase=NTM_PARENT_ACCEPT_RENDER;return NTM_PARENT_RENDER;
+    case NTM_PARENT_RANDOM_RENDER:
+        state->phase=NTM_PARENT_RANDOM_SOUND;return NTM_PARENT_SOUND_TWO;
+    case NTM_PARENT_RANDOM_SOUND:
+        if(!state->random_delay_callback)return -1;
+        parent->delay=1; /* Store2, then same-call decrement. */
+        parent->callback=state->random_delay_callback;state->phase=NTM_PARENT_RANDOM_DELAY;return NTM_PARENT_NONE;
     case NTM_PARENT_CANCEL_RENDER:
         if(!state->cancel_delay_callback)return -1;
         parent->delay=4; /* Store5, then same-call signed decrement to4. */
@@ -40,4 +46,48 @@ int ntm_course_parent_resume(ntm_task_context *context,ntm_task *parent,
         parent->callback=state->accept_delay_callback;state->phase=NTM_PARENT_DELAY;return NTM_PARENT_NONE;
     default:return -1;
     }
+}
+int ntm_course_parent_supply_random(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,uint8_t value)
+{
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_RANDOM_PENDING)return -1;
+    context->selection=(uint8_t)(value%3u);
+    state->phase=NTM_PARENT_RANDOM_RENDER;return NTM_PARENT_RENDER;
+}
+int ntm_course_parent_tick(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state)
+{
+    static const uint8_t mapping[3]={2,0,1};
+    unsigned kind;
+    if(!context || !parent || !state)return -1;
+    if(state->phase==NTM_PARENT_RANDOM_DELAY && parent->callback==state->random_delay_callback)kind=2;
+    else if(state->phase==NTM_PARENT_FADE_DELAY && parent->callback==state->fade_callback)kind=3;
+    else if(state->phase==NTM_PARENT_DELAY && parent->callback==state->cancel_delay_callback)kind=0;
+    else if(state->phase==NTM_PARENT_DELAY && parent->callback==state->accept_delay_callback)kind=1;
+    else return -1;
+    if((kind==0 && !state->fade_callback) || (kind==1 && (!state->setup_callback || context->selection>2)) ||
+       (kind==2 && !state->random_cycle_callback))return -1;
+    parent->delay=(uint16_t)(parent->delay-1u);
+    if(!(parent->delay&0x8000))return NTM_PARENT_NONE;
+    if(kind==0) {
+        parent->substate=0;parent->delay=0;parent->callback=state->fade_callback;
+        state->phase=NTM_PARENT_FADE_DELAY;return NTM_PARENT_NONE;
+    }
+    if(kind==1) {
+        parent->callback=state->setup_callback;state->mapped_course=mapping[context->selection];
+        state->phase=NTM_PARENT_SETUP_PENDING;return NTM_PARENT_COURSE_SETUP;
+    }
+    if(kind==3){state->phase=NTM_PARENT_FADE_PENDING;return NTM_PARENT_FADE;}
+    parent->callback=state->random_cycle_callback;
+    state->random_remaining=(uint8_t)(state->random_remaining-1u);
+    if(state->random_remaining){state->phase=NTM_PARENT_RANDOM_PENDING;return NTM_PARENT_RANDOM;}
+    state->phase=NTM_PARENT_ACCEPT_SOUND;return NTM_PARENT_SOUND_ZERO;
+}
+int ntm_course_parent_generate_random(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,uint8_t *cursor,const uint8_t window[256])
+{
+    int value;
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_RANDOM_PENDING)return -1;
+    value=ntm_random_next(cursor,window);if(value<0)return -1;
+    return ntm_course_parent_supply_random(context,parent,state,(uint8_t)value);
 }

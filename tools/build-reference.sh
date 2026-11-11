@@ -67,9 +67,9 @@ if [ "$MODE" = control ] || [ "$MODE" = course ] || [ "$MODE" = lifecycle ] || [
         cp "$ROOT/native-game/task_allocation.c" "$ROOT/native-game/task_allocation.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
     fi
     if [ "$MODE" = parent ]; then
-        cp "$ROOT/native-game/course_parent.c" "$ROOT/native-game/course_parent.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
+        cp "$ROOT/native-game/random_byte.c" "$ROOT/native-game/random_byte.h" "$ROOT/native-game/course_parent.c" "$ROOT/native-game/course_parent.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
     fi
-    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" "$ROOT/reference/lifecycle-check.c.inc" "$ROOT/reference/allocation-check.c.inc" "$ROOT/reference/parent-check.c.inc" <<'PYCONTROL'
+    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" "$ROOT/reference/lifecycle-check.c.inc" "$ROOT/reference/allocation-check.c.inc" "$ROOT/reference/parent-check.c.inc" "$ROOT/reference/continuation-check.c.inc" <<'PYCONTROL'
 from pathlib import Path
 import sys
 p=Path(sys.argv[1]);s=p.read_text()
@@ -84,7 +84,8 @@ if sys.argv[3] in ('allocation','parent'):
     extra+='\n'+Path(sys.argv[6]).read_text()
     call+='reference_allocation_before();'
 if sys.argv[3]=='parent':
-    extra+='\n'+Path(sys.argv[7]).read_text()
+    extra+='\n'+Path(sys.argv[7]).read_text()+'\n'+Path(sys.argv[8]).read_text()
+    call+='reference_random_before();'
 s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+extra+'\n'+a+'\n    reference_control_before();'+call)
 p.write_text(s)
 PYCONTROL

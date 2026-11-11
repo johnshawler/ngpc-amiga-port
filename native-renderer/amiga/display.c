@@ -6,7 +6,9 @@
 #endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 #ifdef NR_BENCH
-#ifdef NR_LIFECYCLE_BENCH
+#ifdef NR_PARENT_FLOW_BENCH
+#include "parent_flow_benchmark.inc"
+#elif defined(NR_LIFECYCLE_BENCH)
 #include "lifecycle_benchmark.inc"
 #elif defined(NR_COURSE_BENCH)
 #include "course_benchmark.inc"

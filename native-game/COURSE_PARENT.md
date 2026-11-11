@@ -114,3 +114,11 @@ its owner, deletes descendants and completes. Acceptance later maps selection
 reports 0 to its owner and completes. Modified confirmation performs 30 random
 selection/render/sound 2 iterations before ordinary acceptance. These remain next
 conversion steps; none is silently folded into this checkpoint.
+
+## Timer and randomized-selection follow-on
+
+[PARENT_CONTINUATIONS.md](PARENT_CONTINUATIONS.md) adds native timers, the full
+30-draw sequence and the table/cursor provider. The earlier RANDOM boundary above
+is now resumable through the explicit supply/generate API. Fade and course-setup
+services still remain unfinished; the earlier checkpoint's validation scope is
+retained above.

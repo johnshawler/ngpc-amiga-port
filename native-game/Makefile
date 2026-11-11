@@ -58,7 +58,7 @@ allocation-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(ALLOCATION) -o $(BUILD)/test-allocation-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-allocation-68020
 
-PARENT=input_state.c course_choice.c task_lifecycle.c task_allocation.c course_parent.c test_course_parent.c
+PARENT=input_state.c course_choice.c task_lifecycle.c task_allocation.c random_byte.c course_parent.c test_course_parent.c
 .PHONY: parent parent-sanitize parent-m68020
 parent: | $(BUILD)
 	$(CC) $(FLAGS) $(PARENT) -o $(BUILD)/test-parent
@@ -70,3 +70,15 @@ parent-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c course_parent.c -o $(BUILD)/parent-68020.o
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(PARENT) -o $(BUILD)/test-parent-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-parent-68020
+
+CONTINUATIONS=input_state.c course_choice.c task_lifecycle.c task_allocation.c random_byte.c course_parent.c test_parent_continuations.c
+.PHONY: continuations continuations-sanitize continuations-m68020
+continuations: | $(BUILD)
+	$(CC) $(FLAGS) $(CONTINUATIONS) -o $(BUILD)/test-continuations
+	$(BUILD)/test-continuations
+continuations-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(CONTINUATIONS) -o $(BUILD)/test-continuations-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-continuations-sanitize
+continuations-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(CONTINUATIONS) -o $(BUILD)/test-continuations-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-continuations-68020
