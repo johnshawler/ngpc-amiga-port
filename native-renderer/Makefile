@@ -60,3 +60,15 @@ direct-m68020: | $(BUILD)
 	test -z "$$($(CROSS_NM) -u $(BUILD)/scene-renderer-68020.o)"
 	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c test_direct.c -o $(BUILD)/test-direct-68020
 	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-direct-68020
+
+.PHONY: event event-sanitize event-m68020
+event: | $(BUILD)
+	$(CC) $(FLAGS) scene_renderer.c event_renderer.c test_event.c -o $(BUILD)/test-event
+	$(BUILD)/test-event
+event-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -g -fsanitize=address,undefined -fno-omit-frame-pointer scene_renderer.c event_renderer.c test_event.c -o $(BUILD)/test-event-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-event-sanitize
+event-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c event_renderer.c -o $(BUILD)/event-renderer-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static scene_renderer.c event_renderer.c test_event.c -o $(BUILD)/test-event-68020
+	$(QEMU) $(QEMU_FLAGS) $(BUILD)/test-event-68020

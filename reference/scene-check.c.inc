@@ -2,6 +2,8 @@
  * Read-only comparison at the ORIGINAL raster draw point. Test instrumentation
  * only; never compiled into the Amiga game. Counts contain no captured assets. */
 #include "scene_renderer.c"
+#include "event_renderer.c"
+static nr_event_cache event_cache;
 static nr_scene_cache sprite_cache; /* static zero initialization = invalid */
 static nr_planar_cache planar_cache;
 static nr_composition_cache composition_cache;
@@ -16,13 +18,15 @@ uint64_t retro_reference_scene_count(unsigned n)
         case 4:return sprite_cache.rebuilds; case 5:return sprite_cache.hits;
         case 6:return planar_cache.converted_blocks; case 7:return planar_cache.skipped_blocks;
         case 8:return composition_cache.composed_rows; case 9:return composition_cache.reused_rows;
+        case 10:return event_cache.composed;case 11:return event_cache.reused;
+        case 12:return event_cache.notifications;
         default:return 0;
     }
 }
 static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
 {
     nr_scene s;
-    uint8_t pens[160],cached[160],reused[160];
+    uint8_t pens[160],cached[160],reused[160],event[160];
     unsigned x,p;
     nr_bitmap scalar={scalar_bitmap,sizeof scalar_bitmap,160,152,20};
     nr_bitmap words={words_bitmap,sizeof words_bitmap,160,152,20};
@@ -42,6 +46,8 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
     for(x=0;x<160;x++)if(cached[x]!=pens[x])scene_mismatches++;
     if(nr_scene_row_reused(&s,gfx->raster_line,reused,&composition_cache)) {scene_skipped++;return;}
     for(x=0;x<160;x++)if(reused[x]!=pens[x])scene_mismatches++;
+    if(nr_scene_row_event(&s,gfx->raster_line,event,&event_cache)){scene_skipped++;return;}
+    for(x=0;x<160;x++)if(event[x]!=pens[x])scene_mismatches++;
     nr_store_scene_row(&scalar,gfx->raster_line,pens);
     nr_store_scene_row_dirty(&dirty,gfx->raster_line,cached,&planar_cache);
     nr_scene_row_planar(&s,gfx->raster_line,&direct,&sprite_cache);
@@ -57,5 +63,18 @@ static void reference_check_scene(ngpgfx_t *gfx, const uint16_t *original)
         if(gfx->negative)color=~color;
         scene_pixels++;
         if((color&4095)!=(original[x]&4095))scene_mismatches++;
+    }
+}
+
+static void reference_scene_write(ngpgfx_t *gfx,unsigned address,unsigned data)
+{
+    if(address>=0xa000 && address<=0xbfff) {
+        if(gfx->CharacterRAM[address-0xa000]!=data)nr_event_write(&event_cache,0,address-0xa000);
+    }else if(address>=0x9000 && address<=0x9fff) {
+        if(gfx->ScrollVRAM[address-0x9000]!=data)nr_event_write(&event_cache,1,address-0x9000);
+    }else if(address>=0x8800 && address<=0x88ff) {
+        if(gfx->SpriteVRAM[address-0x8800]!=data)nr_event_write(&event_cache,2,0);
+    }else if(address>=0x8c00 && address<=0x8c3f) {
+        if(gfx->SpriteVRAMColor[address-0x8c00]!=(data&15))nr_event_write(&event_cache,2,0);
     }
 }

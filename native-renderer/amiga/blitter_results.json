@@ -1,0 +1,219 @@
+{
+  "result": "PASS",
+  "pal_frame_calibration_ms": 20.024556689724392,
+  "prepared_source_generation_ms": 5875.6560315430825,
+  "source_and_mask_bytes": 97280,
+  "allocated_chip_bytes": 300000,
+  "records": [
+    {
+      "variant": "cpu_long_loop",
+      "frames": 16,
+      "ticks": 427154,
+      "ms_per_frame": 37.63450144422093,
+      "blits_per_frame": 0,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "cpu_long_unrolled",
+      "frames": 16,
+      "ticks": 412804,
+      "ms_per_frame": 36.37019139275338,
+      "blits_per_frame": 0,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_tile_pairs",
+      "frames": 16,
+      "ticks": 1051314,
+      "ms_per_frame": 92.62626184310503,
+      "blits_per_frame": 1520,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_tile_rows",
+      "frames": 16,
+      "ticks": 541678,
+      "ms_per_frame": 47.724664812462734,
+      "blits_per_frame": 152,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_planes",
+      "frames": 16,
+      "ticks": 506016,
+      "ms_per_frame": 44.582656097798214,
+      "blits_per_frame": 8,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_all_planes",
+      "frames": 16,
+      "ticks": 503248,
+      "ms_per_frame": 44.338780820971586,
+      "blits_per_frame": 1,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_all_planes_hog",
+      "frames": 16,
+      "ticks": 399015,
+      "ms_per_frame": 35.155308375353655,
+      "blits_per_frame": 1,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_all_planes_hog",
+      "frames": 16,
+      "ticks": 399021,
+      "ms_per_frame": 35.15583700673406,
+      "blits_per_frame": 1,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_all_planes",
+      "frames": 16,
+      "ticks": 503248,
+      "ms_per_frame": 44.338780820971586,
+      "blits_per_frame": 1,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_planes",
+      "frames": 16,
+      "ticks": 506016,
+      "ms_per_frame": 44.582656097798214,
+      "blits_per_frame": 8,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_tile_rows",
+      "frames": 16,
+      "ticks": 541678,
+      "ms_per_frame": 47.724664812462734,
+      "blits_per_frame": 152,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "blitter_tile_pairs",
+      "frames": 16,
+      "ticks": 1051300,
+      "ms_per_frame": 92.62502836988408,
+      "blits_per_frame": 1520,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "cpu_long_unrolled",
+      "frames": 16,
+      "ticks": 412810,
+      "ms_per_frame": 36.37072002413378,
+      "blits_per_frame": 0,
+      "mismatched_bytes": 0
+    },
+    {
+      "variant": "cpu_long_loop",
+      "frames": 16,
+      "ticks": 427148,
+      "ms_per_frame": 37.633972812840526,
+      "blits_per_frame": 0,
+      "mismatched_bytes": 0
+    }
+  ],
+  "summary": [
+    {
+      "variant": "cpu_long_loop",
+      "min_ms_per_frame": 37.633972812840526,
+      "max_ms_per_frame": 37.63450144422093,
+      "order_difference_percent": 0.0014046653618896303
+    },
+    {
+      "variant": "cpu_long_unrolled",
+      "min_ms_per_frame": 36.37019139275338,
+      "max_ms_per_frame": 36.37072002413378,
+      "order_difference_percent": 0.0014534742880408906
+    },
+    {
+      "variant": "blitter_tile_pairs",
+      "min_ms_per_frame": 92.62502836988408,
+      "max_ms_per_frame": 92.62626184310503,
+      "order_difference_percent": 0.001331684581001031
+    },
+    {
+      "variant": "blitter_tile_rows",
+      "min_ms_per_frame": 47.724664812462734,
+      "max_ms_per_frame": 47.724664812462734,
+      "order_difference_percent": 0.0
+    },
+    {
+      "variant": "blitter_planes",
+      "min_ms_per_frame": 44.582656097798214,
+      "max_ms_per_frame": 44.582656097798214,
+      "order_difference_percent": 0.0
+    },
+    {
+      "variant": "blitter_all_planes",
+      "min_ms_per_frame": 44.338780820971586,
+      "max_ms_per_frame": 44.338780820971586,
+      "order_difference_percent": 0.0
+    },
+    {
+      "variant": "blitter_all_planes_hog",
+      "min_ms_per_frame": 35.155308375353655,
+      "max_ms_per_frame": 35.15583700673406,
+      "order_difference_percent": 0.0015037028683143033
+    }
+  ],
+  "constraints": [
+    "Stock PAL A1200 emulator, 68020, AGA, 2 MiB Chip, zero Fast/Slow RAM; not physical hardware.",
+    "Identical active 320x256 eight-plane display DMA for all variants; last variant explicitly enables Blitter priority.",
+    "Each frame cookie-cuts 160x152 pixels in eight planes, alternating two prepared source/mask sets.",
+    "Actual custom-chip A/B/C/D DMA, minterm 0xCA; all timed frames wait for Blitter completion.",
+    "2-tile groups are 16x8; row groups are 160x8; plane groups are 160x152; all-plane batch is 160x1216.",
+    "Source conversion and batch construction are excluded; prepared source generation is reported separately.",
+    "No arbitrary tile gathering, clipping, shifting, layer/sprite ordering, palette changes, game logic, audio or flipping.",
+    "No Neo Turf Masters acceleration, native game frame rate or full-speed gameplay claim."
+  ],
+  "display_verification": {
+    "result": "PASS",
+    "model": "PAL A1200 68020 AGA",
+    "chip_bytes": 2097152,
+    "fast_bytes": 0,
+    "allocated_chip_bytes": 300000,
+    "bitmap_bytes": 81920,
+    "copper_bytes": 2232,
+    "capture_size": [
+      720,
+      287
+    ],
+    "viewport_origin": [
+      40,
+      18
+    ],
+    "checks": [
+      "all 81920 Chip bitplane bytes",
+      "all 256 AGA palette entries and both nibble writes",
+      "every captured RGB pixel including black border",
+      "Chip allocation and completed fixture marker"
+    ],
+    "limitations": [
+      "synthetic static scene fixture only",
+      "no game/frame timing or audio measured",
+      "emulator not physical hardware",
+      "fixture takes over hardware until emulator reset; no OS return"
+    ],
+    "display_fixture_prefix_bytes": 100000
+  },
+  "reproduction": {
+    "benchmark_protocol_version": 2,
+    "compiler": "m68k-linux-gnu-gcc (Debian 14.2.0-19) 14.2.0",
+    "compiler_flags": "-Wall -Wextra -Werror -m68020 -msoft-float -Os -ffreestanding -fno-builtin -fno-pic -fno-stack-protector -fomit-frame-pointer -fno-asynchronous-unwind-tables",
+    "puae_git_commit": "d366f77c60e5a5f059f129cc3773d3048306083b",
+    "puae_sha256": "84878d50ed9aa9419ce8876998acc45fe1e8dd1600f67f470dae8e2a037a4456",
+    "display_elf_sha256": "0e1dd1d8b729392623e142cb57b016b2bc8270301850625870c94326bb20209e",
+    "fresh_boot_runs": 2,
+    "capture_refreshes_per_run": 6000,
+    "repeat_timing_json_identical": true,
+    "verifier_test_groups": 5,
+    "verifier_negative_subcases": 39,
+    "private_rom_not_included": true
+  }
+}

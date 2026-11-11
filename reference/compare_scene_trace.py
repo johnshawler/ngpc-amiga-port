@@ -20,6 +20,7 @@ def compare(original, observed, repeated):
         b = dict(b)
         if b.pop('scene_rows', None) != (n+1)*152 or b.pop('scene_pixels', None) != (n+1)*152*160:
             raise ValueError('Incomplete scanline coverage')
+        b.pop('event_composed_rows', None); b.pop('event_reused_rows', None); b.pop('event_notifications', None)
         b.pop('composed_rows', None); b.pop('reused_rows', None)
         b.pop('planar_converted_blocks', None); b.pop('planar_skipped_blocks', None)
         b.pop('sprite_cache_rebuilds', None); b.pop('sprite_cache_hits', None)

@@ -22,16 +22,26 @@ if [ "$MODE" = instrumented ]; then
     cat "$ROOT/reference/state-export.c.inc" >> "$STAGE/core-source/libretro.c"
 fi
 if [ "$MODE" = scene ]; then
-    cp "$ROOT/native-renderer/scene_renderer.c" "$ROOT/native-renderer/scene_renderer.h" "$ROOT/native-renderer/tile_renderer.h" "$STAGE/core-source/mednafen/ngp/"
+    cp "$ROOT/native-renderer/scene_renderer.c" "$ROOT/native-renderer/scene_renderer.h" "$ROOT/native-renderer/event_renderer.c" "$ROOT/native-renderer/event_renderer.h" "$ROOT/native-renderer/tile_renderer.h" "$STAGE/core-source/mednafen/ngp/"
     python3 - "$STAGE/core-source/mednafen/ngp/gfx.c" "$ROOT/reference/scene-check.c.inc" <<'PYHOOK'
 from pathlib import Path
 import sys
 p=Path(sys.argv[1]); source=p.read_text()
-anchor='bool ngpgfx_draw(ngpgfx_t *gfx, void *data, bool skip)'
+anchor='void ngpgfx_reset(ngpgfx_t *gfx)'
 hook='      switch (surface->depth)'
 assert source.count(anchor)==1 and source.count(hook)==1
 source=source.replace(anchor,Path(sys.argv[2]).read_text()+'\n'+anchor)
 source=source.replace(hook,'      reference_check_scene(gfx, cfb_scanline);\n\n'+hook)
+write='void ngpgfx_write8(ngpgfx_t *gfx, uint32 address, uint8 data)\n{'
+assert source.count(write)==1
+source=source.replace(write,write+'\n   reference_scene_write(gfx,address,data);')
+reset='void ngpgfx_reset(ngpgfx_t *gfx)'
+# The event observer must also see resets and save-state bulk replacement.
+assert source.count(reset)==1
+source=source.replace(reset+'\n{',reset+'\n{\n   nr_event_invalidate_all(&event_cache);')
+state='   if(!MDFNSS_StateAction(sm, load, data_only, StateRegs, "GFX", false))'
+assert source.count(state)==1
+source=source.replace(state,'   if(load)nr_event_invalidate_all(&event_cache);\n'+state)
 p.write_text(source)
 PYHOOK
 fi

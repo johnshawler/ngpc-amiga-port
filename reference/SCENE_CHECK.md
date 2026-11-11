@@ -26,3 +26,11 @@ A passing comparison proves only rows actually visited. CI builds the adapter
 and checks no-cartridge metadata; it cannot establish game equivalence without
 the private cartridge. The comparator is host test infrastructure, not a target
 CPU emulator or the Amiga game runtime.
+
+The optional explicit-write experiment additionally checks `nr_scene_row_event`
+against each original scanline. Its adapter observes changed tile/map/sprite bytes
+at `ngpgfx_write8`, plus bulk reset/load invalidation. Latched row registers are
+compared independently at draw time. Counters 10–12 report composed rows, reused
+rows and changed-byte notifications. Instrumentation does not change original
+state; this does not imply that a native game currently emits those writes.
+See `native-renderer/EVENT_VALIDATION.md` for the API contract and measured limits.

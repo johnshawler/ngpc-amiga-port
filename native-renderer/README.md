@@ -89,3 +89,8 @@ implemented for this new primitive, so it has not been booted under the stock
 PAL A1200 configuration or timed against the game reference. The next checkpoint
 needs that harness and a verified palette/order adapter, then actual Chip-RAM
 rendering validation. Linux cross execution alone cannot close that gap.
+
+Explicit-write dependency investigation: [EVENT_VALIDATION.md](EVENT_VALIDATION.md). This optional path requires notification of every changed graphics byte; it is not a drop-in replacement for arbitrary memory writers.
+
+A separate [genuine Blitter batching experiment](amiga/blitter_README.md) measures
+prepared-plane cookie-cut work only. It is not integrated scene acceleration.
