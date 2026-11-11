@@ -18,7 +18,8 @@ case "${1:-}" in
     --course-benchmark) OUT="$ROOT/build/native-course-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
     --lifecycle-benchmark) OUT="$ROOT/build/native-lifecycle-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
     --parent-flow-benchmark) OUT="$ROOT/build/native-parent-flow-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
-    *) echo 'usage: run.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark|--adaptive-benchmark|--control-benchmark|--course-benchmark|--lifecycle-benchmark|--parent-flow-benchmark]'  >&2; exit 2 ;;
+    --viewport-benchmark) OUT="$ROOT/build/native-viewport-benchmark"; FRAMES=9000; EXTRA=(--scene) ;;
+    *) echo 'usage: run.sh [--scene|--cached|--benchmark|--planar-benchmark|--composition-benchmark|--direct-benchmark|--event-benchmark|--adaptive-benchmark|--control-benchmark|--course-benchmark|--lifecycle-benchmark|--parent-flow-benchmark|--viewport-benchmark]'  >&2; exit 2 ;;
 esac
 : "${PUAE_CORE:?Set PUAE_CORE to built official libretro PUAE shared core}"
 : "${LIBRETRO_INCLUDE:?Set LIBRETRO_INCLUDE to official libretro.h directory}"
@@ -67,4 +68,8 @@ fi
 
 if [ "${1:-}" = --parent-flow-benchmark ]; then
     python3 "$ROOT/native-renderer/amiga/verify_parent_flow_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
+fi
+
+if [ "${1:-}" = --viewport-benchmark ]; then
+    python3 "$ROOT/native-renderer/amiga/verify_viewport_benchmark.py" --chip "$OUT/chip.bin" --log "$OUT/run.log" --report "$OUT/timing.json"
 fi

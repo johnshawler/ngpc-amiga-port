@@ -115,3 +115,11 @@ Use `make -C native-game continuations continuations-sanitize continuations-m680
 with `reference/compare_random_trace.py`. Target build/run use
 `--parent-flow-benchmark`. Public CI compiles the reference and runs synthetic
 checks, without private cartridge/firmware inputs.
+
+## Service and exit follow-on
+
+[GAME_SERVICES.md](GAME_SERVICES.md) converts fade, valid course setup, the bounded
+queued-object initializer and exit reset. Parent flows can now reach owner-result
+delivery and task removal while sound/course-screen drawing remain explicit
+stubs in the differential harness. The earlier timing and boundary results above
+remain scoped to their original checkpoint.

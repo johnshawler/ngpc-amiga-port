@@ -59,6 +59,8 @@ def main():
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--control-check', action='store_true', help='Compare native input-state routine at original boundaries')
     p.add_argument('--control-cases', action='store_true', help='Run isolated original/native input-state cases before frames')
+    p.add_argument('--service-cases', action='store_true')
+    p.add_argument('--service-check', action='store_true')
     p.add_argument('--continuation-cases', action='store_true')
     p.add_argument('--random-check', action='store_true')
     p.add_argument('--parent-cases', action='store_true')
@@ -74,6 +76,7 @@ def main():
     p.add_argument('--state-out', type=Path)
     p.add_argument('--replay-check', type=int, default=0, help='Restore final state and compare this many additional frames')
     args = p.parse_args()
+    if args.service_check or args.service_cases:args.random_check=True
     if args.random_check or args.continuation_cases:args.allocation_check=True
     if args.parent_cases:args.allocation_check=True
     if args.allocation_check or args.allocation_cases:args.lifecycle_check=True
@@ -250,6 +253,13 @@ def main():
                     failures=cases()
                     if failures or count()!=262912:raise RuntimeError('Continuation cases failed: %s' % failures)
                     print('PASS original/native continuation cases: %s' % count(),file=sys.stderr)
+            if args.service_check or args.service_cases:
+                service_count=core.retro_reference_service_count;service_count.argtypes=[C.c_uint];service_count.restype=C.c_uint64
+                if args.service_cases:
+                    cases=core.retro_reference_service_selftest;cases.restype=C.c_uint64
+                    failures=cases()
+                    if failures or service_count(3)!=85088:raise RuntimeError('Service cases failed: %s' % failures)
+                    print('PASS original/native service cases: %s' % service_count(3),file=sys.stderr)
             if args.scene_check:
                 scene_count = core.retro_reference_scene_count
                 scene_count.argtypes = [C.c_uint]
@@ -297,6 +307,10 @@ def main():
                     counts=[random_count(i) for i in range(3)]
                     if counts[1] or counts[2]:raise RuntimeError('Native random mismatch/boundary: %s' % counts)
                     extra['random_calls']=counts[0]
+                if args.service_check:
+                    counts=[service_count(i) for i in range(8)]
+                    if counts[1] or counts[2]:raise RuntimeError('Native service mismatch/boundary: %s' % counts)
+                    extra.update(zip(['service_calls','service_fade','service_setup','service_queue','service_reset'],[counts[0],*counts[4:8]]))
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
                     if counts[2] or counts[3]:

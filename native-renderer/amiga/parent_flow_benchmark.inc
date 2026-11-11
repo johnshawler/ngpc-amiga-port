@@ -4,6 +4,8 @@
 #include "../../native-game/task_lifecycle.c"
 #include "../../native-game/task_allocation.c"
 #include "../../native-game/random_byte.c"
+#include "../../native-game/viewport.c"
+#include "../../native-game/game_services.c"
 #include "../../native-game/course_parent.c"
 #define CIA(off) (*(volatile uint8_t *)(0xbfd000u+(off)))
 static uint32_t bench_report[112];

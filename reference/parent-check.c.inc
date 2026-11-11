@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later. Native parent state differential test. */
 #include "random_byte.c"
+#include "viewport.c"
+#include "game_services.c"
 #include "course_parent.c"
 static uint64_t parent_cases;
 static int parent_renderer(ntm_task_context *c,ntm_task *t){(void)c;(void)t;
@@ -14,8 +16,10 @@ static int parent_random_delay(ntm_task_context *c,ntm_task *t){(void)c;(void)t;
 static int parent_random_cycle(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
 static int parent_fade(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
 static int parent_accept_setup(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
+static int parent_cancel_exit(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
+static int parent_accept_exit(ntm_task_context *c,ntm_task *t){(void)c;(void)t;return 0;}
 static ntm_task parent_nodes[5];
-static const uint32_t parent_addresses[5]={0x6000,0x6100,0x6200,0x6300,0x4ee6};
+static uint32_t parent_addresses[5]={0x6000,0x6100,0x6200,0x6300,0x4ee6};
 static uint32_t parent_pointer(ntm_task *node)
 {
     unsigned i;if(!node)return 0xffffffff;
@@ -32,6 +36,8 @@ static uint32_t parent_callback(ntm_task_callback cb)
     if(cb==parent_random_cycle)return 0x209496;
     if(cb==parent_fade)return 0x209416;
     if(cb==parent_accept_setup)return 0x2094dc;
+    if(cb==parent_cancel_exit)return 0x20942d;
+    if(cb==parent_accept_exit)return 0x209508;
     if(cb==ntm_course_task)return 0x209536;
     return 0;
 }

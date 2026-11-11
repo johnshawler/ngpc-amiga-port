@@ -24,6 +24,19 @@ int ntm_course_parent_resume(ntm_task_context *context,ntm_task *parent,
 {
     if(!context || !parent || !state)return -1;
     switch(state->phase) {
+    case NTM_PARENT_SETUP_PENDING:
+        if(!state->accept_exit_callback)return -1;
+        state->phase=NTM_PARENT_SERVICE54_PENDING;return NTM_PARENT_SERVICE54;
+    case NTM_PARENT_SERVICE54_PENDING:
+        if(!state->accept_exit_callback)return -1;
+        parent->callback=state->accept_exit_callback;state->phase=NTM_PARENT_ACCEPT_EXIT;return NTM_PARENT_NONE;
+    case NTM_PARENT_EXIT_CANCEL_PENDING:
+    case NTM_PARENT_EXIT_ACCEPT_PENDING:
+        if(!parent->owner)return -1;
+        parent->owner->result=state->phase==NTM_PARENT_EXIT_CANCEL_PENDING?252:0;
+        if(ntm_task_remove_descendants(context,parent)<0)return -1;
+        {int result=ntm_task_finish(context,parent);if(result<0)return -1;state->finish_outcome=(uint8_t)result;}
+        state->phase=NTM_PARENT_DONE;return NTM_PARENT_NONE;
     case NTM_PARENT_CANCEL_SOUND:
         if(ntm_task_remove_descendants(context,parent)<0)return -1;
         state->phase=NTM_PARENT_CANCEL_RENDER;return NTM_PARENT_RENDER;
@@ -60,6 +73,11 @@ int ntm_course_parent_tick(ntm_task_context *context,ntm_task *parent,
     static const uint8_t mapping[3]={2,0,1};
     unsigned kind;
     if(!context || !parent || !state)return -1;
+    if(state->phase==NTM_PARENT_ACCEPT_EXIT) {
+        if(!state->accept_exit_callback || parent->callback!=state->accept_exit_callback)return -1;
+        state->viewport[0]=state->viewport[1]=state->viewport[2]=0;state->viewport[3]=152;
+        state->phase=NTM_PARENT_EXIT_ACCEPT_PENDING;return NTM_PARENT_EXIT;
+    }
     if(state->phase==NTM_PARENT_RANDOM_DELAY && parent->callback==state->random_delay_callback)kind=2;
     else if(state->phase==NTM_PARENT_FADE_DELAY && parent->callback==state->fade_callback)kind=3;
     else if(state->phase==NTM_PARENT_DELAY && parent->callback==state->cancel_delay_callback)kind=0;
@@ -90,4 +108,42 @@ int ntm_course_parent_generate_random(ntm_task_context *context,ntm_task *parent
     if(!context || !parent || !state || state->phase!=NTM_PARENT_RANDOM_PENDING)return -1;
     value=ntm_random_next(cursor,window);if(value<0)return -1;
     return ntm_course_parent_supply_random(context,parent,state,(uint8_t)value);
+}
+int ntm_course_parent_supply_fade(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,int busy)
+{
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_FADE_PENDING)return -1;
+    if(busy){state->phase=NTM_PARENT_FADE_DELAY;return NTM_PARENT_NONE;}
+    if(!state->cancel_exit_callback)return -1;
+    parent->callback=state->cancel_exit_callback;state->phase=NTM_PARENT_EXIT_CANCEL_PENDING;return NTM_PARENT_EXIT;
+}
+int ntm_course_parent_fade(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,const uint8_t window[256])
+{
+    int busy;
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_FADE_PENDING || !state->cancel_exit_callback)return -1;
+    busy=ntm_viewport_fade(parent,state->viewport,window);if(busy<0)return -1;
+    return ntm_course_parent_supply_fade(context,parent,state,busy);
+}
+int ntm_course_parent_setup(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state)
+{
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_SETUP_PENDING || !state->accept_exit_callback)return -1;
+    if(ntm_course_setup(state->mapped_course,&state->course_index,state->course_order)<0)return -1;
+    return ntm_course_parent_resume(context,parent,state);
+}
+int ntm_course_parent_service54(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,ntm_service54_state *queue,const uint8_t payload[9])
+{
+    if(!context || !parent || !state || state->phase!=NTM_PARENT_SERVICE54_PENDING || !state->accept_exit_callback)return -1;
+    if(ntm_service54(queue,payload)<0)return -1;
+    return ntm_course_parent_resume(context,parent,state);
+}
+int ntm_course_parent_exit(ntm_task_context *context,ntm_task *parent,
+    ntm_course_parent_state *state,ntm_display_reset_state *display)
+{
+    if(!context || !parent || !parent->owner || !state ||
+       (state->phase!=NTM_PARENT_EXIT_CANCEL_PENDING && state->phase!=NTM_PARENT_EXIT_ACCEPT_PENDING))return -1;
+    if(ntm_display_reset(display)<0)return -1;
+    return ntm_course_parent_resume(context,parent,state);
 }
