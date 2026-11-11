@@ -1,7 +1,8 @@
 # Real golfer feature selection
 
 `shot_golfer_features.c` converts complete original `21081d`, a prerequisite
-called by the still-unconverted initial drawing stage `20a9ce`:
+called by the initial drawing stage `20a9ce`, now converted separately in
+`shot_golfer_drawing.c`:
 
 - `2100ca` collects at most 16 actual feature records in the original inclusive
   200-unit rectangle, preserving wrapped coordinates and original sign checks.
@@ -24,7 +25,7 @@ actual lists total 5,464 raw bytes; the largest current-hole list is 216 bytes.
 These figures exclude state, structures and code and are not a target-fit claim.
 
 This helper does not draw scenery, register an object, select a replacement
-callback or advance the scheduler. `20a9ce` still needs its genuine art, map
+callback or advance the scheduler. `shot_golfer_drawing.c` supplies the genuine art, map
 shifting and tag 52 object path. The existing aiming target still stops before
 fire, and no target artifacts or exporter were regenerated.
 

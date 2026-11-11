@@ -25,7 +25,7 @@ typedef struct {
 } ntm_shot_golfer_context;
 /* Exact20a58d..20a5a9 initializer, including real ahead-of-ball terrain
  * sampling, scenery/HUD stamps, palette queues, perspective and tag51 pin.
- * Resources are borrowed. The next20a5aa drawing callback is NOT implemented
- * here and must remain an explicit boundary unless a real adapter is supplied. */
+ * Resources are borrowed. The next20a5aa drawing callback is provided by shot_golfer_drawing.
+ * A caller must bind that real adapter before advancing the scheduler. */
 int ntm_shot_golfer_initialize(ntm_shot_golfer *,ntm_task *,ntm_shot_golfer_context *,const ntm_shot_golfer_resources *);
 #endif

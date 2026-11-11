@@ -2,7 +2,7 @@
 
 `shot_golfer.c` converts the complete original `20a58d` initializer through its
 return at `20a5a9`. It installs the real next callback `20a5aa`. That subsequent
-drawing stage is not implemented here. This is a real child initializer, not an
+drawing stage is implemented separately in `shot_golfer_drawing.c`. This is a real child initializer, not an
 interactive swing or a completed golfer animation.
 
 ## Converted work
@@ -48,7 +48,9 @@ capacity remains 40, so existing asset-family structures do not grow.
 `reference/report_shot_golfer_resources.py` reports sizes without exposing data:
 
 - All 54 large/close map pairs total 1,288,529 raw bytes across 108 distinct sources.
-  Per-hole loading avoids making every map resident. First-hole pairs are 6,514,
+  This is a sum of individual spans, not distinct resident bytes: a later
+  source-overlap audit merges all 54 terrain and feature lists to 141,140
+  aligned bytes (74,636 packed). Per-hole loading remains an option. First-hole pairs are 6,514,
   6,266 and 5,790 bytes across the three courses. The largest pair is 44,244 bytes.
 - New scenery stamps need 18 descriptors totaling 4,380 bytes and one 14,464-byte
   tile-table prefix: 18,844 incremental raw bytes over current opening assets.

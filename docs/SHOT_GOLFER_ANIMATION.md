@@ -5,8 +5,8 @@ ground dispatcher `20ac01`, foreground dispatcher `20ac50`, and their shared
 timer/frame helper `20ac7e`. It also converts the complete pin adjustment
 helper `20a94a`.
 
-The real earlier drawing setup `20a5aa` remains unconverted. The application
-must not jump from the existing initializer directly to this animation callback.
+The real earlier drawing setup `20a5aa` is now implemented in
+`shot_golfer_drawing.c`. The application must run it before this animation callback.
 These routines are verified building blocks, not an interactive swing or a new
 Amiga game build.
 
@@ -55,11 +55,11 @@ Comparisons cover all nonstack game RAM and all hardware/video bytes from
 original instructions, resources, or engine binaries are patched. Private ROM
 data and trace captures remain outside source control.
 
-## Next real boundary
+## Initial drawing dependency
 
 `20a5aa` calls `20a9ce`, then `20a94a`, then the already converted map-saving
 helper `20ab9f`; it installs `20a5c0` and performs its first animation tick in the
-same call. The missing `20a9ce` path includes:
+same call. The separately converted `20a9ce` path includes:
 
 1. Two real scenery stamps from `20ab15`.
 2. `21081d`: nearby-feature collection `2100ca`, direction transform and view
@@ -70,5 +70,5 @@ same call. The missing `20a9ce` path includes:
 
 The collection helper reads the current hole's feature list at its resolved
 offset `36`, selects up to 16 entries in the original 200-unit rectangle, and
-retains original scratch and list terminators. This must be converted against
-real hole resources before treating the supplied green state as available.
+retains original scratch and list terminators. The drawing module consumes this verified helper and real hole resources;
+application integration must bind them before using the green state.

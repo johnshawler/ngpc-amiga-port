@@ -28,9 +28,13 @@ int ntm_course_screen_draw(ntm_course_screen *screen,uint16_t selection,
                           const ntm_screen_asset assets[3]);
 int ntm_course_screen_tick(ntm_course_screen *screen,uint16_t selection,
                           const ntm_screen_asset assets[3]);
-/* Bounded course assets: normal orientation, 8-bit/16-bit sentinel map rows.
+/* Bounded course assets: normal/reflected 8-bit/16-bit sentinel map rows.
+ * Tile bit15 reflects around the FIRST row's right edge and XORs output bit15
+ * after 16-bit addition; bit14 is discarded. Unequal row widths are supported.
  * Source header pointer bytes are never dereferenced: tiles is resolved by the
  * asset loader. Writes target caller-owned native scene arrays. */
+/* Read-only preflight: 0 valid, -1 invalid. No caller state is mutated. */
+int ntm_course_screen_stamp_valid(const ntm_screen_stamp *stamp);
 int ntm_course_screen_stamp(const ntm_screen_stamp *stamp,uint8_t tiles[8192],uint8_t maps[4096]);
 /* Separate original scheduling boundaries: drain fills descending7..0 before
  * stamps FIFO. Nonzero dimensions/tile counts/rows and nonempty rows only.
