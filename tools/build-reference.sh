@@ -13,7 +13,8 @@ case "${1:-}" in
   --control-probe) MODE=control-probe; OUT="$OUT/control-probe" ;;
   --consumer-probe) MODE=consumer-probe; OUT="$OUT/consumer-probe" ;;
   --course) MODE=course; OUT="$OUT/course" ;;
-  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe|--consumer-probe|--course]" >&2; exit 2 ;;
+  --lifecycle) MODE=lifecycle; OUT="$OUT/lifecycle" ;;
+  *) echo "usage: $0 [--instrumented|--scene|--control|--control-probe|--consumer-probe|--course|--lifecycle]" >&2; exit 2 ;;
 esac
 [ "$(git -C "$SRC" rev-parse HEAD)" = "$PIN" ] || { echo 'Incorrect reference-core pin' >&2; exit 1; }
 mkdir -p "$OUT"
@@ -55,16 +56,22 @@ fi
 if [ "$MODE" = control-probe ]; then
     python3 "$ROOT/reference/control-probe.py" "$STAGE/core-source"
 fi
-if [ "$MODE" = control ] || [ "$MODE" = course ]; then
+if [ "$MODE" = control ] || [ "$MODE" = course ] || [ "$MODE" = lifecycle ]; then
     cp "$ROOT/native-game/input_state.c" "$ROOT/native-game/input_state.h" "$ROOT/native-game/course_choice.c" "$ROOT/native-game/course_choice.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
-    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" <<'PYCONTROL'
+    if [ "$MODE" = lifecycle ]; then
+        cp "$ROOT/native-game/task_lifecycle.c" "$ROOT/native-game/task_lifecycle.h" "$STAGE/core-source/mednafen/ngp/TLCS-900h/"
+    fi
+    python3 - "$STAGE/core-source/mednafen/ngp/TLCS-900h/TLCS900h_interpret.c" "$ROOT/reference/control-check.c.inc" "$MODE" "$ROOT/reference/course-check.c.inc" "$ROOT/reference/lifecycle-check.c.inc" <<'PYCONTROL'
 from pathlib import Path
 import sys
 p=Path(sys.argv[1]);s=p.read_text()
 a='int32 TLCS900h_interpret(void)\n{'
 assert s.count(a)==1
-extra=Path(sys.argv[4]).read_text() if sys.argv[3]=='course' else ''
+extra=Path(sys.argv[4]).read_text() if sys.argv[3] in ('course','lifecycle') else ''
 call='reference_course_before();' if extra else ''
+if sys.argv[3]=='lifecycle':
+    extra+='\n'+Path(sys.argv[5]).read_text()
+    call+='reference_lifecycle_before();'
 s=s.replace(a,Path(sys.argv[2]).read_text()+'\n'+extra+'\n'+a+'\n    reference_control_before();'+call)
 p.write_text(s)
 PYCONTROL

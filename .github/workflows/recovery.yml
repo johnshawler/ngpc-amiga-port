@@ -26,5 +26,7 @@ jobs:
         run: bash tools/build-reference.sh --control
       - name: Build native course-consumer comparison
         run: bash tools/build-reference.sh --course
+      - name: Build native task lifecycle comparison
+        run: bash tools/build-reference.sh --lifecycle
       - name: Run source and no-cartridge reference checks
         run: python3 -m unittest discover -s tests -v

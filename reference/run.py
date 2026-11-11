@@ -59,6 +59,8 @@ def main():
     p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--control-check', action='store_true', help='Compare native input-state routine at original boundaries')
     p.add_argument('--control-cases', action='store_true', help='Run isolated original/native input-state cases before frames')
+    p.add_argument('--lifecycle-check', action='store_true', help='Compare native task completion against original')
+    p.add_argument('--lifecycle-cases', action='store_true', help='Run isolated task completion differential cases')
     p.add_argument('--course-check', action='store_true', help='Compare native course selector state/effects')
     p.add_argument('--course-cases', action='store_true', help='Run isolated original/native course cases')
     p.add_argument('--frames', type=int, default=120)
@@ -67,6 +69,7 @@ def main():
     p.add_argument('--state-out', type=Path)
     p.add_argument('--replay-check', type=int, default=0, help='Restore final state and compare this many additional frames')
     args = p.parse_args()
+    if args.lifecycle_check or args.lifecycle_cases:args.course_check = True
     if args.course_check or args.course_cases:args.control_check = True
     if args.capture_every < 1:
         p.error('Capture interval must be positive')
@@ -203,6 +206,17 @@ def main():
                     if failures or course_count(3) != 266240:
                         raise RuntimeError('Course cases failed: %s' % failures)
                     print('PASS original/native course cases: %s' % course_count(3), file=sys.stderr)
+            if args.lifecycle_check or args.lifecycle_cases:
+                lifecycle_count = core.retro_reference_lifecycle_count
+                lifecycle_count.argtypes = [C.c_uint]
+                lifecycle_count.restype = C.c_uint64
+                if args.lifecycle_cases:
+                    cases = core.retro_reference_lifecycle_selftest
+                    cases.restype = C.c_uint64
+                    failures = cases()
+                    if failures or lifecycle_count(3) != 139264:
+                        raise RuntimeError('Lifecycle cases failed: %s' % failures)
+                    print('PASS original/native lifecycle cases: %s' % lifecycle_count(3), file=sys.stderr)
             if args.scene_check:
                 scene_count = core.retro_reference_scene_count
                 scene_count.argtypes = [C.c_uint]
@@ -237,6 +251,11 @@ def main():
                     extra['course_confirm'] = counts[6]
                     extra['course_cancel'] = counts[7]
                     extra['course_option_confirm'] = counts[8]
+                if args.lifecycle_check:
+                    counts = [lifecycle_count(i) for i in range(7)]
+                    if counts[1] or counts[2]:
+                        raise RuntimeError('Native lifecycle mismatch/boundary: %s' % counts)
+                    extra.update(zip(['lifecycle_calls','lifecycle_deferred','lifecycle_unlinked','lifecycle_recycled'],[counts[0],*counts[4:7]]))
                 if args.scene_check:
                     counts = [scene_count(i) for i in range(4)]
                     if counts[2] or counts[3]:

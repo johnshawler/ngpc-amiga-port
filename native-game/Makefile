@@ -30,3 +30,16 @@ course-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c course_choice.c -o $(BUILD)/course-68020.o
 	$(CROSS_CC) $(FLAGS) -m68020 -static input_state.c course_choice.c test_course_choice.c -o $(BUILD)/test-course-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-course-68020
+
+LIFECYCLE=input_state.c course_choice.c task_lifecycle.c test_task_lifecycle.c
+.PHONY: lifecycle lifecycle-sanitize lifecycle-m68020
+lifecycle: | $(BUILD)
+	$(CC) $(FLAGS) $(LIFECYCLE) -o $(BUILD)/test-lifecycle
+	$(BUILD)/test-lifecycle
+lifecycle-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(LIFECYCLE) -o $(BUILD)/test-lifecycle-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-lifecycle-sanitize
+lifecycle-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c task_lifecycle.c -o $(BUILD)/lifecycle-68020.o
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(LIFECYCLE) -o $(BUILD)/test-lifecycle-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-lifecycle-68020

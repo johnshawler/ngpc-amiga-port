@@ -117,3 +117,11 @@ The separate `--consumer-probe` mode is diagnostic only and does not establish
 routine equivalence. Next integration work is the native task lifecycle/dispatch
 bridge and actual input adapter, keeping sound and rendering costs separately
 measured.
+
+## Follow-on lifecycle integration
+
+`task_lifecycle.c` now provides a native course callback, completion/recycling and
+one dispatch iteration. See [TASK_LIFECYCLE.md](TASK_LIFECYCLE.md) for the additional
+contract, original differential coverage and separately measured target fixture.
+The earlier isolated course API and benchmark above remain unchanged; allocation,
+frame scheduling, rendering integration and real audio remain outside that API.
