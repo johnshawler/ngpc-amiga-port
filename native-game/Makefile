@@ -214,3 +214,15 @@ round-record-sanitize: | $(BUILD)
 round-record-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(ROUND_RECORD) -o $(BUILD)/test-round-record-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-round-record-68020
+
+HOLE_PREPARE=hole_prepare.c random_byte.c test_hole_prepare.c
+.PHONY: hole-prepare hole-prepare-sanitize hole-prepare-m68020
+hole-prepare: | $(BUILD)
+	$(CC) $(FLAGS) $(HOLE_PREPARE) -o $(BUILD)/test-hole-prepare
+	$(BUILD)/test-hole-prepare
+hole-prepare-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(HOLE_PREPARE) -o $(BUILD)/test-hole-prepare-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-hole-prepare-sanitize
+hole-prepare-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(HOLE_PREPARE) -o $(BUILD)/test-hole-prepare-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-hole-prepare-68020
