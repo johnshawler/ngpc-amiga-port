@@ -115,4 +115,6 @@ This advances real drawing; complete interactive application/audio remain unfini
 
 [COURSE_APPLICATION.md](COURSE_APPLICATION.md) covers native background/palette
 initialization, fade-in and the bounded input-driven selector application.
-Cursor-object realization, audio and a user-facing Amiga frontend remain absent.
+The subsequent [cursor consumer](COURSE_CURSOR.md) and bounded
+[Amiga selector frontend](../native-renderer/amiga/selector_README.md) add
+interactive display. Audio synthesis and subsequent golf gameplay remain absent.

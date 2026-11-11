@@ -14,4 +14,4 @@ class CourseInitializationTests(unittest.TestCase):
  def test_driver(self):self.run_native(['input_state','course_choice','task_lifecycle','task_allocation','random_byte','viewport','game_services','course_parent','course_screen','course_driver','test_course_driver'],'PASS native course driver')
 
  def test_application(self):
-  self.run_native(['input_state','course_choice','task_lifecycle','task_allocation','random_byte','viewport','game_services','course_parent','course_screen','course_driver','course_palette','course_initialization','course_application','../native-renderer/scene_renderer','../native-renderer/tile_renderer','test_course_application'],'PASS native course application')
+  self.run_native(['input_state','course_choice','task_lifecycle','task_allocation','random_byte','viewport','game_services','course_parent','course_screen','course_driver','course_palette','course_initialization','course_application','course_cursor','../native-renderer/scene_renderer','../native-renderer/tile_renderer','test_course_application'],'PASS native course application')

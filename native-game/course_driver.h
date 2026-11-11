@@ -16,6 +16,7 @@ typedef struct {
     uint8_t *random_cursor,*tiles,*maps;
     int (*service_pump)(void *);
     int (*service_tail)(void *);
+    int (*drawing_head)(void *); /* Optional deferred object upload after maps. */
     int (*completion_submit)(void *,uint16_t); /* Shared service pool, command84. */
     void *service_context;
     uint32_t updates;

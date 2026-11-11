@@ -129,7 +129,7 @@ driver-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(DRIVER) -o $(BUILD)/test-driver-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-driver-68020
 
-APPLICATION=$(filter-out test_course_driver.c,$(DRIVER)) course_palette.c course_initialization.c course_application.c ../native-renderer/scene_renderer.c ../native-renderer/tile_renderer.c test_course_application.c
+APPLICATION=$(filter-out test_course_driver.c,$(DRIVER)) course_palette.c course_initialization.c course_application.c course_cursor.c ../native-renderer/scene_renderer.c ../native-renderer/tile_renderer.c test_course_application.c
 .PHONY: application application-sanitize application-m68020
 application: | $(BUILD)
 	$(CC) $(FLAGS) $(APPLICATION) -o $(BUILD)/test-application
@@ -140,3 +140,15 @@ application-sanitize: | $(BUILD)
 application-m68020: | $(BUILD)
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(APPLICATION) -o $(BUILD)/test-application-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-application-68020
+
+CURSOR=course_cursor.c game_services.c test_course_cursor.c
+.PHONY: cursor cursor-sanitize cursor-m68020
+cursor: | $(BUILD)
+	$(CC) $(FLAGS) $(CURSOR) -o $(BUILD)/test-cursor
+	$(BUILD)/test-cursor
+cursor-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(CURSOR) -o $(BUILD)/test-cursor-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-cursor-sanitize
+cursor-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(CURSOR) -o $(BUILD)/test-cursor-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-cursor-68020

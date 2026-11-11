@@ -1,5 +1,11 @@
 # Native course startup and input-driven selector
 
+This document records the background/palette checkpoint. The subsequent
+[course cursor integration](COURSE_CURSOR.md) adds object realization and
+[the bounded Amiga frontend](../native-renderer/amiga/selector_README.md)
+adds hardware input and display. Historical omissions below describe this
+checkpoint, not the newer application.
+
 This checkpoint connects native background initialization, palette preparation,
 fade-in and ordered course-selector updates. It is new recovery work, not a
 restored copy of the lost runtime. The bounded application accepts button samples

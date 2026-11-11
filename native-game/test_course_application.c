@@ -8,7 +8,7 @@ static uint8_t image[]={1,0,0,0,0,0,0,0,129,0,0,255,255},pixels[16],offsets[2],c
 static uint8_t fade[256],randoms[256],cursor;
 int main(void)
 {
-    ntm_screen_asset assets[5];ntm_palette_job jobs[3]={{0}};ntm_course_resources resources;
+    ntm_screen_asset assets[5];ntm_palette_job jobs[3]={{0}};ntm_course_resources resources={0};
     unsigned i,mode,count;uint8_t row[160];nr_scene scene;
     for(i=0;i<16;i++)pixels[i]=255;
     for(i=0;i<5;i++){assets[i].data=image;assets[i].size=sizeof image;assets[i].tiles=pixels;assets[i].tiles_size=16;}
