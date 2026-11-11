@@ -245,3 +245,23 @@ tee-setup-m68020: | $(BUILD)
 	$(QEMU) -cpu m68020 $(BUILD)/test-tee-setup-68020
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(TEE_APPLICATION) -o $(BUILD)/test-tee-application-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-tee-application-68020
+
+SHOT_PREPARE=shot_math.c shot_prepare.c random_byte.c test_shot_prepare.c
+SHOT_CORE=shot_math.c shot_prepare.c shot_scene.c shot_banner.c shot_raster.c shot_palette.c shot_terrain.c shot_application.c
+SHOT_APPLICATION=$(filter-out test_tee_setup_application.c,$(TEE_APPLICATION)) $(SHOT_CORE) test_shot_application.c
+.PHONY: shot-setup shot-setup-sanitize shot-setup-m68020
+shot-setup: | $(BUILD)
+	$(CC) $(FLAGS) $(SHOT_PREPARE) -o $(BUILD)/test-shot-prepare
+	$(BUILD)/test-shot-prepare
+	$(CC) $(FLAGS) $(SHOT_APPLICATION) -o $(BUILD)/test-shot-application
+	$(BUILD)/test-shot-application
+shot-setup-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(SHOT_PREPARE) -o $(BUILD)/test-shot-prepare-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-prepare-sanitize
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(SHOT_APPLICATION) -o $(BUILD)/test-shot-application-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-application-sanitize
+shot-setup-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_PREPARE) -o $(BUILD)/test-shot-prepare-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-prepare-68020
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_APPLICATION) -o $(BUILD)/test-shot-application-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-application-68020

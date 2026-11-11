@@ -16,6 +16,10 @@ typedef struct {
     int (*previous_head)(void *),(*previous_tail)(void *);
     uint8_t started,boundary;
     uint32_t start_update,overview_update,open_update,hold_update,complete_update;
+    /* Optional separately linked continuation/services. NULL preserves the
+     * verified overview-only application and its exact boundary. */
+    ntm_task_callback shot_continuation;
+    int (*palette_tail)(void *);void *palette_context;
 } ntm_tee_setup_application;
 /* Opt-in normal fresh-record path. Caller owns all assets and state; source
  * export remains separate. Defaults use independently observed fresh saved

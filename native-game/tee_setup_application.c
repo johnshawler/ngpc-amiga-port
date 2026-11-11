@@ -82,7 +82,7 @@ static int tee_owner_tick(ntm_task_context *c,ntm_task *t)
     ntm_tee_setup_application *a=(ntm_tee_setup_application *)c;int result;
     result=ntm_tee_owner_tick(&a->owner,t,c,&a->base.fallback);
     if(result<0)return -1;
-    if(result){a->boundary=NTM_TEE_BOUNDARY_SHOT_SCENE;a->base.selector.driver.running=0;}
+    if(result){if(a->shot_continuation)return a->shot_continuation(c,t);a->boundary=NTM_TEE_BOUNDARY_SHOT_SCENE;a->base.selector.driver.running=0;}
     return 0;
 }
 static int tee_owner_wait(ntm_task_context *c,ntm_task *t){return tee_owner_tick(c,t);}
@@ -118,7 +118,7 @@ static int tee_tail(void *opaque)
 {
     ntm_tee_setup_application *a=opaque;ntm_course_application *b=&a->base.selector;
     if(!a->started)return a->previous_tail(opaque);
-    if(ntm_course_palette_tail(&b->palette)<0)return -1;
+    if((a->palette_tail?a->palette_tail(a->palette_context):ntm_course_palette_tail(&b->palette))<0)return -1;
     if((b->initialization.flags&144)==16) {
         if(ntm_tee_objects_tail(&a->engine,a->objects,&b->display,a->x,b->initialization.screen_words,
             &b->initialization.flags,a->object_resources)<0)return -1;
