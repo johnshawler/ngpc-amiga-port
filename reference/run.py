@@ -43,6 +43,7 @@ def main():
     p.add_argument('--rom', type=Path)
     p.add_argument('--core', type=Path, default=ROOT / 'build/mednafen_ngp_libretro.so')
     p.add_argument('--snapshot-dir', type=Path, help='Private per-frame CPU/RAM/GPU captures; requires instrumented core')
+    p.add_argument('--scene-check', action='store_true', help='Require native/reference scanline parity from scene-instrumented core')
     p.add_argument('--frames', type=int, default=120)
     p.add_argument('--inputs', type=Path, help='JSON frame -> NGPC button list; absent frames release all buttons')
     p.add_argument('--epoch', type=int, default=946684800)
@@ -160,6 +161,10 @@ def main():
                 core.retro_get_memory_data.restype = C.c_void_p
                 core.retro_get_memory_size.argtypes = [C.c_uint]
                 core.retro_get_memory_size.restype = C.c_size_t
+            if args.scene_check:
+                scene_count = core.retro_reference_scene_count
+                scene_count.argtypes = [C.c_uint]
+                scene_count.restype = C.c_uint64
             def step(n):
                 nonlocal mask
                 mask = events.get(n, 0)
@@ -168,6 +173,12 @@ def main():
                 if callback_errors or pixels is None:
                     raise RuntimeError(callback_errors or 'No video frame')
                 extra = {}
+                if args.scene_check:
+                    counts = [scene_count(i) for i in range(4)]
+                    if counts[2] or counts[3]:
+                        raise RuntimeError('Native scene mismatch or unsupported row: %s' % counts)
+                    extra['scene_rows'] = counts[0]
+                    extra['scene_pixels'] = counts[1]
                 if args.snapshot_dir:
                     size = export(None, 0)
                     if size != 32876:
@@ -198,6 +209,8 @@ def main():
                 return dict(type='frame', frame=n, input_mask=mask, width=width, height=height, video_sha256=digest(pixels), audio_sha256=digest(audio), audio_samples=len(audio)//4, **extra)
             for frame in range(args.frames):
                 print(json.dumps(step(frame), sort_keys=True))
+            if args.scene_check and args.frames and scene_count(0) == 0:
+                raise RuntimeError('Scene check ran no rows')
             state = snapshot()
             if args.state_out:
                 args.state_out.write_bytes(state)

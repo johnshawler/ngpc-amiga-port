@@ -1,13 +1,22 @@
 /* Synthetic emulator-only display fixture. Owns hardware until emulator reset.
  * No OS-return or physical-hardware usability claim. GPL-2.0-or-later. */
 #include "../tile_renderer.h"
+#ifdef NR_SCENE
+#include "scene_fixture.inc"
+#endif
 #define REG(off) (*(volatile uint16_t *)(0xdff000u+(off)))
 static void move(uint16_t **c,unsigned reg,unsigned value){*(*c)++=reg;*(*c)++=value;}
 void display_prepare(uint8_t *block)
 {
     uint8_t *bitmap=block+64, *tiles=block+64+81920+4096;
     uint16_t *copper=(uint16_t *)(block+64+81920),*c=copper;
-    uint8_t pens[64];unsigned i,x,y,bank,low;
+    unsigned i,bank,low;
+#ifndef NR_SCENE
+    uint8_t pens[64];unsigned x,y;
+#endif
+#ifdef NR_SCENE
+    fill_scene(bitmap,tiles);
+#else
     nr_bitmap b={bitmap,81920,320,256,40};
     for(i=0;i<8192;i++)tiles[i]=(uint8_t)((i*37u)^(i>>3));
     for(i=0;i<64;i++)pens[i]=(uint8_t)((i/4)*16+(i%4)*5);
@@ -18,6 +27,7 @@ void display_prepare(uint8_t *block)
         if(y&1)d|=0x4000;
         nr_draw_tile(&b,tiles,8192,d,pens,32+x*8,32+y*8);
     }
+    #endif
     move(&c,0x100,0x0210); /* COLOR + BPU3 = 8 lowres planes on AGA */
     move(&c,0x102,0);move(&c,0x104,0);move(&c,0x10c,0x0011);
     move(&c,0x1fc,0); /* FMODE: conservative 16-bit fetch */

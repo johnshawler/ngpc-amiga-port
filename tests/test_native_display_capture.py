@@ -19,4 +19,18 @@ class CaptureTests(unittest.TestCase):
    self.assertNotEqual(self.verify(CAP/'chip.bin',CAP/'screen.ppm',d/'log').returncode,0)
    bad=bytearray((CAP/'screen.ppm').read_bytes());bad[-1]^=1;(d/'screen.ppm').write_bytes(bad)
    self.assertNotEqual(self.verify(CAP/'chip.bin',d/'screen.ppm',CAP/'run.log').returncode,0)
+SCENE=ROOT/'build/native-scene-display'
+@unittest.skipUnless((SCENE/'chip.bin').exists() and (SCENE/'screen.ppm').exists(),'Run synthetic Amiga scene first')
+class SceneCaptureTests(unittest.TestCase):
+ def test_scene_capture_and_corruption(self):
+  command=[sys.executable,str(ROOT/'native-renderer/amiga/verify.py'),'--scene','--chip',str(SCENE/'chip.bin'),'--capture',str(SCENE/'screen.ppm'),'--log',str(SCENE/'run.log')]
+  good=subprocess.run(command,capture_output=True,text=True)
+  self.assertEqual(good.returncode,0,good.stderr)
+  self.assertEqual(json.loads(good.stdout)['result'],'PASS')
+  with tempfile.TemporaryDirectory() as d:
+   raw=bytearray((SCENE/'chip.bin').read_bytes());marker=raw.find(b'NGPDISP1')
+   bitmap=int.from_bytes(raw[marker+8:marker+12],'big');raw[bitmap+52*40+10]^=1
+   path=Path(d)/'bad.bin';path.write_bytes(raw)
+   command[command.index('--chip')+1]=str(path)
+   self.assertNotEqual(subprocess.run(command,capture_output=True).returncode,0)
 if __name__=='__main__':unittest.main()

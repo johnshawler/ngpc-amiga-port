@@ -3,7 +3,7 @@
 import argparse,json,struct
 from pathlib import Path
 from PIL import Image
-p=argparse.ArgumentParser();p.add_argument('--capture',required=True,type=Path);p.add_argument('--chip',required=True,type=Path);p.add_argument('--log',required=True,type=Path);p.add_argument('--report',type=Path);a=p.parse_args()
+p=argparse.ArgumentParser();p.add_argument('--scene',action='store_true');p.add_argument('--capture',required=True,type=Path);p.add_argument('--chip',required=True,type=Path);p.add_argument('--log',required=True,type=Path);p.add_argument('--report',type=Path);a=p.parse_args()
 log=a.log.read_text()
 for setting in ['cpu_model=68020','chipmem_size=4','bogomem_size=0','chipset=aga','ntsc=false','Model: "A1200OG".']:
  assert setting in log,setting
@@ -25,6 +25,9 @@ for ty in range(24):
     source_x=7-x if tx&1 else x
     texel=(word>>(14-source_x*2))&3
     if texel:pixels[(32+ty*8+y)*320+32+tx*8+x]=palette*16+texel*5
+if a.scene:
+ from scene_expected import expected_pixels
+ pixels=expected_pixels()
 planes=bytearray(81920)
 for y in range(256):
  for x in range(320):
@@ -55,6 +58,6 @@ box=im.getbbox();ebox=expected.getbbox();assert box and ebox
 origin=(box[0]-ebox[0],box[1]-ebox[1]);assert origin[0]>=0 and origin[1]>=0
 canvas=Image.new('RGB',im.size);canvas.paste(expected,origin)
 assert canvas.tobytes()==im.tobytes(),'Actual AGA capture pixels differ'
-r={'result':'PASS','model':'PAL A1200 68020 AGA','chip_bytes':len(ram),'fast_bytes':0,'allocated_chip_bytes':100000,'bitmap_bytes':81920,'copper_bytes':clen,'capture_size':list(im.size),'viewport_origin':list(origin),'checks':['all 81920 Chip bitplane bytes','all 256 AGA palette entries and both nibble writes','every captured RGB pixel including black border','Chip allocation and completed fixture marker'],'limitations':['synthetic static tile fixture only','no game/frame timing or audio measured','emulator not physical hardware','fixture takes over hardware until emulator reset; no OS return']}
+r={'result':'PASS','model':'PAL A1200 68020 AGA','chip_bytes':len(ram),'fast_bytes':0,'allocated_chip_bytes':100000,'bitmap_bytes':81920,'copper_bytes':clen,'capture_size':list(im.size),'viewport_origin':list(origin),'checks':['all 81920 Chip bitplane bytes','all 256 AGA palette entries and both nibble writes','every captured RGB pixel including black border','Chip allocation and completed fixture marker'],'limitations':['synthetic static scene fixture only' if a.scene else 'synthetic static tile fixture only','no game/frame timing or audio measured','emulator not physical hardware','fixture takes over hardware until emulator reset; no OS return']}
 text=json.dumps(r,indent=2)+'\n';print(text,end='')
 if a.report:a.report.write_text(text)

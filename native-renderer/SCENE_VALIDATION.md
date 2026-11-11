@@ -34,3 +34,20 @@ integration remain unverified. All layers are enabled.
 The pre-existing synthetic stock PAL Amiga fixture is unchanged. This new
 compositor has not yet been integrated into that executable or measured on its
 68020/AGA target. No speed, gameplay, audio or playable-golf claim follows.
+
+## Subsequent raster and Amiga integration gate
+
+The read-only original raster-point adapter is described in
+`reference/SCENE_CHECK.md`. It compares current latched state rather than a
+frame-end dump; original-game coverage remains limited to the supplied script.
+
+The separate `amiga/build.sh --scene` and `amiga/run.sh --scene` path integrates
+this compositor into a synthetic Amiga executable. Its independently calculated
+Python destination-pixel/depth oracle verifies the complete Chip bitmap,
+256-color Copper palette and full emulator capture. It uses the same stock PAL
+68020/AGA, 2 MiB Chip, zero Fast setup, and the same 100,000-byte Chip allocation.
+All maps, tiles and sprites are generated synthetic data. The original tile
+fixture remains the default; scene artifacts use `build/native-scene-display`.
+
+This closes the static synthetic target-integration gap above. It does not
+establish interactive game rendering, per-frame throughput or playable golf.

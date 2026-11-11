@@ -44,5 +44,13 @@ class ReferenceTests(unittest.TestCase):
         self.assertNotEqual(original.pop('core_sha256'), observed.pop('core_sha256'))
         self.assertEqual(original, observed)
 
+    @unittest.skipUnless((ROOT / 'reference/build/scene/mednafen_ngp_libretro.so').exists(), 'Build scene reference first')
+    def test_scene_metadata(self):
+        command = [sys.executable, str(ROOT / 'reference/run.py')]
+        original = json.loads(subprocess.check_output(command, text=True))
+        observed = json.loads(subprocess.check_output(command + ['--core', str(ROOT / 'reference/build/scene/mednafen_ngp_libretro.so')], text=True))
+        self.assertNotEqual(original.pop('core_sha256'), observed.pop('core_sha256'))
+        self.assertEqual(original, observed)
+
 if __name__ == '__main__':
     unittest.main()
