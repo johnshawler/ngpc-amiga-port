@@ -265,3 +265,24 @@ shot-setup-m68020: | $(BUILD)
 	$(QEMU) -cpu m68020 $(BUILD)/test-shot-prepare-68020
 	$(CROSS_CC) $(FLAGS) -m68020 -static $(SHOT_APPLICATION) -o $(BUILD)/test-shot-application-68020
 	$(QEMU) -cpu m68020 $(BUILD)/test-shot-application-68020
+
+AIM_SETUP=shot_aim.c shot_aim_setup.c shot_hud.c aim_world.c
+AIM_APPLICATION=$(filter-out test_shot_application.c,$(SHOT_APPLICATION)) $(AIM_SETUP) shot_aim_application.c test_shot_aim_application.c
+.PHONY: shot-aim shot-aim-sanitize shot-aim-m68020
+shot-aim: | $(BUILD)
+	$(CC) $(FLAGS) shot_aim.c test_shot_aim.c -o $(BUILD)/test-shot-aim
+	$(BUILD)/test-shot-aim
+	$(CC) $(FLAGS) $(AIM_APPLICATION) -o $(BUILD)/test-shot-aim-application
+	$(BUILD)/test-shot-aim-application
+shot-aim-sanitize: | $(BUILD)
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer shot_aim.c test_shot_aim.c -o $(BUILD)/test-shot-aim-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-aim-sanitize
+	$(CC) $(FLAGS) -fsanitize=address,undefined -fno-omit-frame-pointer $(AIM_APPLICATION) -o $(BUILD)/test-shot-aim-application-sanitize
+	ASAN_OPTIONS=detect_leaks=0 $(BUILD)/test-shot-aim-application-sanitize
+shot-aim-m68020: | $(BUILD)
+	$(CROSS_CC) $(FLAGS) -m68020 -msoft-float -ffreestanding -fno-builtin -c shot_aim.c -o $(BUILD)/shot-aim-68020.o
+	test -z "$$(m68k-linux-gnu-nm -u $(BUILD)/shot-aim-68020.o)"
+	$(CROSS_CC) $(FLAGS) -m68020 -static shot_aim.c test_shot_aim.c -o $(BUILD)/test-shot-aim-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-aim-68020
+	$(CROSS_CC) $(FLAGS) -m68020 -static $(AIM_APPLICATION) -o $(BUILD)/test-shot-aim-application-68020
+	$(QEMU) -cpu m68020 $(BUILD)/test-shot-aim-application-68020

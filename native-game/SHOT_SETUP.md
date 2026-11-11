@@ -2,7 +2,9 @@
 
 This opt-in native continuation implements the original `2096a4` preparation
 and its actual `20bf8e` first-tee banner child. It runs after the verified hole
-overview. It stops at `209751`, before the next scene/aiming setup. It does not
+overview. It stops at `209751`, before the next scene/aiming setup. The separate opt-in
+[initial scene continuation](SHOT_AIM.md) extends that boundary without changing
+this application's default behavior. This default path does not
 implement aiming, a swing, ball physics, later lies, or a playable hole.
 
 ## Converted behavior

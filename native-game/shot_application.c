@@ -56,6 +56,7 @@ static int shot_scene_wait(ntm_task_context *c,ntm_task *t)
 {
     ntm_shot_application *a=(ntm_shot_application *)c;int result=ntm_shot_scene_wait(&a->scene,t);
     if(result<0)return -1;
+    if(result && a->aim_continuation)return a->aim_continuation(c,t);
     if(result){a->boundary=NTM_SHOT_BOUNDARY_SCENE_SETUP;a->base.base.selector.driver.running=0;a->complete_update=a->base.base.selector.driver.updates+1;}
     return 0;
 }

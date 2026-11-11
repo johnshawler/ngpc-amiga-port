@@ -3,7 +3,20 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#ifdef NTM_TEST_AIM
+#include "shot_aim_application.h"
+static ntm_shot_aim_application aim_application;
+#define application (aim_application.base)
+static ntm_shot_aim_resources aim_math;
+static ntm_shot_aim_application_resources aim_resources;
+static ntm_shot_aim_setup_resources aim_setup;
+static ntm_shot_hud_resources aim_hud;
+static ntm_aim_world_resources aim_worlds[54];
+static uint8_t aim_angles[2050],aim_powers[52],aim_minimums[256],aim_layout[65568],aim_block[32],aim_indices[2],aim_commands[35];
+static const uint8_t aim_metadata[5]={68,0,0,0,3};
+#else
 static ntm_shot_application application;
+#endif
 static ntm_shot_prepare_resources preparation;
 static ntm_terrain_resources terrain;
 static ntm_shot_banner_resources banner;
@@ -87,15 +100,44 @@ int main(void)
     exit_palettes[0].blend=blend;exit_palettes[0].blend_size=512;
     exit_palettes[1]=exit_palettes[0];exit_palettes[1].kind=40;exit_palettes[1].offset=486;exit_palettes[1].count=0;exit_palettes[1].control_offset=0x118;
     shot.preparation=&preparation;shot.terrain=&terrain;shot.banner=&banner;shot.objects=&banner_objects;shot.exit_palettes=exit_palettes;
+    #ifdef NTM_TEST_AIM
+    aim_math.angles=aim_angles;aim_math.angles_size=sizeof aim_angles;
+    for(i=0;i<12;i++){aim_math.powers[i]=aim_powers;aim_math.power_sizes[i]=sizeof aim_powers;}
+    for(i=0;i<6;i++){aim_math.minimums[i]=aim_minimums;aim_math.minimum_sizes[i]=sizeof aim_minimums;}
+    aim_setup.metadata=aim_metadata;aim_setup.metadata_size=5;
+    aim_hud.font=aim_hud.header=aim_hud.label=assets[0];aim_hud.label_id=4;
+    for(i=0;i<17;i++)aim_hud.wind[i]=assets[0];
+    memset(aim_commands,255,sizeof aim_commands);
+    for(i=0;i<54;i++) {
+        ntm_aim_world_resources *w=aim_worlds+i;
+        w->layout.data=aim_layout;w->layout.size=sizeof aim_layout;w->layout.origin=32768;
+        w->blocks.data=aim_block;w->blocks.size=sizeof aim_block;
+        w->tile_indices.data=aim_indices;w->tile_indices.size=2;
+        w->tiles.data=pixels;w->tiles.size=16;
+        w->commands.data=aim_commands;w->commands.size=sizeof aim_commands;
+        w->colors.data=colors;w->colors.size=sizeof colors;w->width=w->height=8;
+        aim_setup.panorama[i/18][i%18]=assets[0];aim_resources.objects[i]=&banner_objects;
+    }
+    aim_resources.aim=&aim_math;aim_resources.worlds=aim_worlds;aim_resources.world_count=54;
+    aim_resources.hud=&aim_hud;aim_resources.setup=&aim_setup;aim_resources.palette=jobs[0];
+#endif
     for(mode=0;mode<8;mode++)for(selection=0;selection<3;selection++) {
         ntm_course_application *s=&app.selector;ntm_course_driver *d=&s->driver;
         unsigned count=0,maximum_tasks=0,seen_banner=0,seen_exit=0;uint8_t prepare_cursor=0;
-        memset(&application,0,sizeof application);memset(s->screen.fill_status,255,8);
+        #ifdef NTM_TEST_AIM
+        memset(&aim_application,0,sizeof aim_application);
+#else
+        memset(&application,0,sizeof application);
+#endif
+        memset(s->screen.fill_status,255,8);
         for(i=0;i<8;i++)s->palette.slots[i]=(uint16_t)(0x8000+4*i);
         s->palette.pending[0]=s->palette.pending[1]=255;s->palette.background=128;
         d->parent.viewport[3]=152;s->screen.displayed_selection=(uint16_t)selection;random_cursor=3;
         app.records.golfer[0]=(uint8_t)((mode+selection)%6);app.records.golfer[1]=(uint8_t)((mode+selection+1)%6);
         assert(!ntm_shot_application_start(&application,&resources,courses,titles,objects,&round,&tee_resources,&holes,&shot));
+        #ifdef NTM_TEST_AIM
+        assert(!ntm_shot_aim_application_enable(&aim_application,&aim_resources));
+#endif
         if(mode==6)tee.owner.skip_overview=1;
         if(mode==7)application.banner_context.controlling_player=1;
         for(i=0;i<8;i++)assert(!ntm_shot_application_update(&application,0));
@@ -120,11 +162,20 @@ int main(void)
             if(mode==4)assert(application.banner.phase==NTM_SHOT_BANNER_HOLD && !seen_exit);
             else assert(!application.started && !seen_banner);
         } else {
+            #ifdef NTM_TEST_AIM
+            assert(application.boundary==NTM_SHOT_BOUNDARY_AIM_SETUP && aim_application.phase==1 && application.scene.phase==2);
+            assert(s->display.zero_flags[8]==1 && tee.objects[4].tag==5);
+            assert(tee.objects[4].width==68u+4u*tee.hole.hole[4] && tee.objects[4].velocity==4u*tee.hole.hole[5]);
+            assert(aim_application.world.bytes[44]==0 && aim_application.world.bytes[45]==152);
+            assert(s->screen.stamp_bytes==24);
+#else
             assert(application.boundary==NTM_SHOT_BOUNDARY_SCENE_SETUP && application.scene.phase==2);
+            assert(!s->display.zero_flags[8]);
+#endif
             assert(application.banner.phase==NTM_SHOT_BANNER_DONE && seen_banner && seen_exit);
             assert(application.start_update==tee.complete_update+1 && application.banner_update==application.start_update);
             assert(application.complete_update==d->updates && !application.raster.callback);
-            assert(!d->parent.viewport[2] && !s->display.zero_flags[8]);
+            assert(!d->parent.viewport[2]);
             assert(application.scene.player.stroke_snapshot==1 && tee.hole.players[0][2]==1);
             assert(tee.hole.hole[0x70]==4 && tee.hole.hole[0x73]==4 && tee.hole.hole[0x76]==4);
             assert(maximum_tasks>=6 && !app.fallback.callback);
@@ -133,6 +184,10 @@ int main(void)
         flows++;
     }
     assert(flows==24 && unsupported_flows==6);
+    #ifdef NTM_TEST_AIM
+    puts("shot aim application:24 authored flows, real world/HUD/object services, explicit next-dispatch boundary passed");
+#else
     puts("shot application:24 authored flows, real task pool, palette/raster lifecycle, explicit unsupported branches passed");
+#endif
     return 0;
 }

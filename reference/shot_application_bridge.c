@@ -5,7 +5,13 @@
 #include "course_intro_application.c"
 #include "tee_setup_application.c"
 #include "shot_application.c"
+#ifdef NTM_SHOT_BRIDGE_AIM
+#include "shot_aim_application.c"
+static ntm_shot_aim_application aim_application;
+#define shot_application (aim_application.base)
+#else
 static ntm_shot_application shot_application;
+#endif
 #define tee_application (shot_application.base)
 #define continuation (tee_application.base)
 #define app (continuation.selector)
@@ -32,6 +38,9 @@ void bridge_tee(const ntm_tee_setup_resources *r,const ntm_hole_prepare_resource
 static void observe_tee_sound(void *p,uint8_t service,uint16_t command,uint16_t parameter){
  (void)p;if(tee_sound_count<64){tee_sounds[tee_sound_count][0]=service;tee_sounds[tee_sound_count][1]=command;tee_sounds[tee_sound_count++][2]=parameter;}}
 static uint32_t callback(ntm_task_callback c){
+#ifdef NTM_SHOT_BRIDGE_AIM
+ if(c==aim_setup_boundary)return 0x209830;
+#endif
  if(c==shot_scene_entry)return 0x2096a4;
  if(c==shot_scene_wait)return 0x209749;
  if(c==shot_tee_wait)return 0x208799;

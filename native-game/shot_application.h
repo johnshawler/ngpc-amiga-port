@@ -12,7 +12,7 @@ typedef struct {
     const ntm_tee_object_assets *objects;
     const ntm_shot_palette_job *exit_palettes; /* Exact commands6c then70. */
 } ntm_shot_resources;
-enum {NTM_SHOT_BOUNDARY_NONE=0,NTM_SHOT_BOUNDARY_SCENE_SETUP,NTM_SHOT_BOUNDARY_UNSUPPORTED};
+enum {NTM_SHOT_BOUNDARY_NONE=0,NTM_SHOT_BOUNDARY_SCENE_SETUP,NTM_SHOT_BOUNDARY_UNSUPPORTED,NTM_SHOT_BOUNDARY_AIM_SETUP};
 typedef struct {
     ntm_tee_setup_application base; /* First for existing scheduled services. */
     ntm_shot_scene scene;ntm_shot_scene_context scene_context;
@@ -20,6 +20,7 @@ typedef struct {
     ntm_shot_banner_context banner_context;ntm_shot_raster raster;ntm_shot_palette palette;
     ntm_task extra_tasks[4];const ntm_shot_resources *resources;
     uint8_t started,boundary;uint32_t start_update,banner_update,complete_update;
+    ntm_task_callback aim_continuation; /* Optional real209751 continuation; NULL keeps old boundary. */
 } ntm_shot_application;
 /* Opt-in coherent first tee only. Real task storage extends the original pool;
  * no child uses a fabricated completion or an intentionally shared fallback.
